@@ -1,5 +1,7 @@
+
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:app_frontend/view/login_page.dart';
 import '../constant/color_const.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -16,8 +18,14 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    _navigationTimer = Timer(Duration(seconds: 3), () {
+    _navigationTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const LoginPage(),
+        ),
+      );
     });
   }
 
@@ -27,42 +35,40 @@ class _SplashScreenState extends State<SplashScreen> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
-  
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
-      body: SafeArea(
-        child: Center(
+      body: Center(
+        child: SafeArea(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Spacer(),
+        
               Container(
-                height: 130,
-                width: 130,
+                height: 120,
+                width: 120,
                 decoration: BoxDecoration(
                   color: AppColor.primaryColor,
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColor.primaryColor.withValues(alpha: 0.20),
-                      blurRadius: 25,
-                      offset: Offset(0, 12),
+                      color: AppColor.primaryColor.withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.menu_book_rounded,
-                  size: 72,
+                  size: 65,
                   color: Colors.white,
                 ),
               ),
-
-
-              SizedBox(height: 30,),
-
-
+        
+              const SizedBox(height: 28),
+        
               Text(
                 'Book Haven',
                 style: TextStyle(
@@ -72,55 +78,45 @@ class _SplashScreenState extends State<SplashScreen> {
                   color: AppColor.primaryColor,
                 ),
               ),
-
-
-              SizedBox(height: 12,),
-
-
-
-
-              Text(
+        
+              const SizedBox(height: 12),
+        
+              const Text(
                 'A world of stories, just for you',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
                   color: Color(0xFF827568),
-                  letterSpacing: 0.4,
                 ),
               ),
-
-
-
-
-              SizedBox(height: 45,),
-
-
-
-
-
-
+        
+              const SizedBox(height: 40),
+        
               SizedBox(
                 height: 28,
                 width: 28,
                 child: CircularProgressIndicator(
-                  strokeAlign: 3,
+                  strokeWidth: 3,
                   color: AppColor.primaryColor,
                 ),
-              )
+              ),
+        
+              const Spacer(),
+        
+              const Padding(
+                padding: EdgeInsets.only(bottom: 20),
+                child: Text(
+                  'DISCOVER • READ • REPEAT',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2,
+                    color: Color(0xFF9A8C7C),
+                  ),
+                ),
+              ),
             ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.only(bottom: 28),
-        child: Text(
-          'DISCOVER * READ * REPEAT',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 2,
-            color: Color(0xFF9A8C7C),
           ),
         ),
       ),

@@ -1,5 +1,6 @@
+import 'package:app_frontend/view/login_page.dart';
 import 'package:flutter/material.dart';
-import 'view/splash_screen.dart';
+// import 'view/splash_screen.dart';
 
 void main() {
   runApp(OnlineBookLibraryApp());
@@ -19,7 +20,7 @@ class OnlineBookLibraryApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF5B4636)),
       ),
 
-      home: SplashScreen(),
+      home: const LoginPage(),
     );
   }
 }
