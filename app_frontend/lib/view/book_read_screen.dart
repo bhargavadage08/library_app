@@ -28,8 +28,13 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
     return Scaffold(
       backgroundColor: Color(0xFFFFFCF5),
       appBar: AppBar(
-        backgroundColor: Color(0xFF6C63FF),
+        backgroundColor: const Color(0xFF6C63FF),
         foregroundColor: Colors.white,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           widget.book.title,
           maxLines: 1,

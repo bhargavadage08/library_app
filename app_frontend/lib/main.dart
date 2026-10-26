@@ -1,10 +1,8 @@
-import 'package:app_frontend/view/home_page.dart';
-// import 'package:app_frontend/view/login_page.dart';
 import 'package:flutter/material.dart';
-// import 'view/splash_screen.dart';
+import 'view/splash_screen.dart';
 
 void main() {
-  runApp(OnlineBookLibraryApp());
+  runApp(const OnlineBookLibraryApp());
 }
 
 class OnlineBookLibraryApp extends StatelessWidget {
@@ -18,10 +16,10 @@ class OnlineBookLibraryApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Roboto',
-        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF5B4636)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5B4636)),
       ),
 
-      home: const HomePage(),
+      home: const SplashScreen(),
     );
   }
 }

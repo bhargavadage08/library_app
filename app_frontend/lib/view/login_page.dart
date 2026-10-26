@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constant/color_const.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
-// import 'home_page.dart';
+import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -31,15 +30,14 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter email and password')),
+        const SnackBar(content: Text('Please enter email and password')),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
       );
     }
-    // else {
-    //   Navigator.pushReplacement(
-    //     context,
-    //     MaterialPageRoute(builder: (context) => HomePage()),
-    //   );
-    // }
   }
 
   @override
@@ -234,9 +232,10 @@ class _LoginPageState extends State<LoginPage> {
                 height: 55,
                 child: OutlinedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Google Sign-in is not connected yet'),
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HomePage(),
                       ),
                     );
                   },
