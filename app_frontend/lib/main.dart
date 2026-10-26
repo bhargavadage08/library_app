@@ -1,4 +1,5 @@
-import 'package:app_frontend/view/login_page.dart';
+import 'package:app_frontend/view/home_page.dart';
+// import 'package:app_frontend/view/login_page.dart';
 import 'package:flutter/material.dart';
 // import 'view/splash_screen.dart';
 
@@ -20,7 +21,7 @@ class OnlineBookLibraryApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF5B4636)),
       ),
 
-      home: const LoginPage(),
+      home: const HomePage(),
     );
   }
 }
