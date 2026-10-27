@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/book_model.dart';
 import '../repo/book_repo.dart';
 import 'book_categories_page.dart';
-import 'book_read_screen.dart';
+import 'book_detail_screen.dart';
 import 'login_page.dart';
 import '../repo/auth_repo.dart';
 
@@ -140,160 +140,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Show book details popup
+  // Navigate to book details screen
   void _showBookDetails(Book book) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-          content: SizedBox(
-            width: 320,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Book cover
-                  SizedBox(
-                    height: 175,
-                    width: 140,
-                    child:
-                        book.coverUrl != null &&
-                            book.coverUrl!.startsWith('https://')
-                        ? Image.network(
-                            book.coverUrl!,
-                            fit: BoxFit.contain,
-                            webHtmlElementStrategy:
-                                WebHtmlElementStrategy.prefer,
-                            errorBuilder: (_, __, ___) => _coverPlaceholder(),
-                          )
-                        : _coverPlaceholder(),
-                  ),
-
-                  SizedBox(height: 18),
-
-                  // Title
-                  Text(
-                    book.title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
-                  ),
-
-                  SizedBox(height: 10),
-
-                  // Author
-                  Text(
-                    'By ${book.authorName}',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-
-                  SizedBox(height: 12),
-
-                  // Download count
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFF0EDFF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${book.downloadCount} downloads',
-                      style: TextStyle(
-                        color: primaryColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 22),
-
-                  // Read book button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(dialogContext);
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BookReaderScreen(book: book),
-                          ),
-                        );
-                      },
-                      icon: Icon(Icons.menu_book_rounded),
-                      label: Text(
-                        'Read Book',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-
-                    SizedBox(height: 10),
-
-                  // Favorite Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.redAccent,
-                        side:   BorderSide(color: Color(0xFFFFCDD2)),
-                        padding:   EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () async {
-                        if (!AuthService().isAuthenticated) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                              content: Text('Please log in to save books to favorites'),
-                            ),
-                          );
-                          return;
-                        }
-                        final isFav = await _repository.toggleFavorite(book.id);
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(isFav
-                                ? 'Saved "${book.title}" to favorites!'
-                                : 'Removed from favorites'),
-                          ),
-                        );
-                      },
-                      icon:   Icon(Icons.favorite_border_rounded, size: 18),
-                      label:   Text(
-                        'Favorite Book',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                    },
-                    child:   Text('Close', style: TextStyle(color: Colors.grey)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BookDetailsScreen(book: book),
+      ),
     );
   }
 

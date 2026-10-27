@@ -8,72 +8,271 @@ import 'auth_repo.dart';
 class BookRepository {
   static const String gutendexBaseUrl = 'https://gutendex.com/books/';
 
-  /// Fetches books from both backend PostgreSQL library and Gutendex catalog
+  static final List<Book> _allCachedBooks = [];
+
+  /// Fetches all books directly from the frontend GET API (Gutendex / Project Gutenberg)
+  /// without calling the backend.
   Future<List<Book>> fetchBooks({String query = '', String? category}) async {
-    List<Book> books = [];
+    final cleanQuery = query.trim().toLowerCase();
+    final cleanCategory = category?.trim().toLowerCase();
 
-    // 1. Try fetching from FastAPI Backend
-    try {
-      final backendUri = Uri.parse('${ApiConstants.apiV1}/books').replace(
-        queryParameters: {
-          if (query.trim().isNotEmpty) 'query': query.trim(),
-          if (category != null && category.trim().isNotEmpty) 'category': category.trim(),
-          'limit': '50',
-        },
-      );
+    // 1. Search or category filter queries
+    if (cleanQuery.isNotEmpty || (cleanCategory != null && cleanCategory.isNotEmpty)) {
+      try {
+        final uri = Uri.parse(gutendexBaseUrl).replace(
+          queryParameters: {
+            'languages': 'en',
+            if (cleanQuery.isNotEmpty) 'search': cleanQuery,
+            if (cleanCategory != null && cleanCategory.isNotEmpty) 'topic': cleanCategory,
+          },
+        );
 
-      final backendResp = await http
-          .get(backendUri, headers: AuthService().authHeaders)
-          .timeout(const Duration(seconds: 4));
+        final resp = await http.get(uri).timeout(const Duration(seconds: 12));
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+          final results = data['results'] as List? ?? [];
+          final books = results
+              .map((item) => Book.fromJson(Map<String, dynamic>.from(item as Map)))
+              .toList();
 
-      if (backendResp.statusCode == 200) {
-        final list = jsonDecode(utf8.decode(backendResp.bodyBytes)) as List? ?? [];
-        final backendBooks = list
-            .map((item) => Book.fromJson(Map<String, dynamic>.from(item as Map)))
-            .toList();
-        books.addAll(backendBooks);
+          if (books.isNotEmpty) {
+            for (final b in books) {
+              if (!_allCachedBooks.any((c) => c.id == b.id)) {
+                _allCachedBooks.add(b);
+              }
+            }
+            return books;
+          }
+        }
+      } catch (_) {
+        // Query request timed out or failed, fall back to local filtering
       }
-    } catch (_) {
-      // Backend temporarily unreachable or offline; fallback to Gutendex catalog
+
+      // Filter in-memory cached books
+      if (_allCachedBooks.isNotEmpty) {
+        final filtered = _allCachedBooks.where((b) {
+          final matchesQuery = cleanQuery.isEmpty ||
+              b.title.toLowerCase().contains(cleanQuery) ||
+              b.authorName.toLowerCase().contains(cleanQuery);
+          final matchesCat = cleanCategory == null ||
+              cleanCategory.isEmpty ||
+              (b.category != null && b.category!.toLowerCase().contains(cleanCategory));
+          return matchesQuery && matchesCat;
+        }).toList();
+        if (filtered.isNotEmpty) return filtered;
+      }
     }
 
-    // 2. Fetch additional catalog from Gutendex to provide rich browsing
+    // 2. Fetch full catalog of books from Gutendex GET API (multiple pages concurrently)
+    final List<Book> fetchedBooks = [];
+    final Set<int> seenIds = {};
+
     try {
-      final gutendexUri = Uri.parse(gutendexBaseUrl).replace(
-        queryParameters: {
-          'languages': 'en',
-          if (query.trim().isNotEmpty)
-            'search': query.trim()
-          else if (category != null && category.trim().isNotEmpty)
-            'topic': category.trim(),
-        },
+      final pageUrls = [
+        Uri.parse('$gutendexBaseUrl?languages=en&page=1'),
+        Uri.parse('$gutendexBaseUrl?languages=en&page=2'),
+        Uri.parse('$gutendexBaseUrl?languages=en&page=3'),
+      ];
+
+      final responses = await Future.wait(
+        pageUrls.map(
+          (u) => http
+              .get(u)
+              .timeout(const Duration(seconds: 12))
+              .catchError((_) => http.Response('{}', 500)),
+        ),
       );
 
-      final gutendexResp =
-          await http.get(gutendexUri).timeout(const Duration(seconds: 15));
-
-      if (gutendexResp.statusCode == 200) {
-        final data = jsonDecode(gutendexResp.body) as Map<String, dynamic>;
-        final results = data['results'] as List? ?? [];
-        final existingIds = books.map((b) => b.id).toSet();
-
-        for (final item in results) {
-          final b = Book.fromJson(Map<String, dynamic>.from(item as Map));
-          if (!existingIds.contains(b.id)) {
-            books.add(b);
-            existingIds.add(b.id);
+      for (final resp in responses) {
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+          final results = data['results'] as List? ?? [];
+          for (final item in results) {
+            final b = Book.fromJson(Map<String, dynamic>.from(item as Map));
+            if (!seenIds.contains(b.id)) {
+              seenIds.add(b.id);
+              fetchedBooks.add(b);
+            }
           }
         }
       }
     } catch (_) {
-      // If Gutendex fails or is slow, return what backend has
+      // API temporarily slow, fall back to cached or curated catalog
     }
 
-    if (books.isEmpty && query.trim().isNotEmpty) {
-      throw Exception('No books found for "$query".');
+    if (fetchedBooks.isNotEmpty) {
+      _allCachedBooks.clear();
+      _allCachedBooks.addAll(fetchedBooks);
+      return fetchedBooks;
     }
 
-    return books;
+    // 3. Fallback: cached catalog or curated classics if offline
+    if (_allCachedBooks.isNotEmpty) {
+      return _allCachedBooks;
+    }
+
+    return _getCuratedFallbackBooks();
+  }
+
+  static List<Book> _getCuratedFallbackBooks() {
+    return const [
+      Book(
+        id: 84,
+        title: 'Frankenstein; Or, The Modern Prometheus',
+        authors: ['Mary Wollstonecraft Shelley'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/84/pg84.cover.medium.jpg',
+        downloadCount: 98250,
+        category: 'Science',
+        description: 'The story of Victor Frankenstein and his monstrous creation.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/84/pg84.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/84/pg84.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 1342,
+        title: 'Pride and Prejudice',
+        authors: ['Jane Austen'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/1342/pg1342.cover.medium.jpg',
+        downloadCount: 75320,
+        category: 'Romance',
+        description: 'A classic romantic novel of manners written by Jane Austen in 1813.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/1342/pg1342.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/1342/pg1342.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 64317,
+        title: 'The Great Gatsby',
+        authors: ['F. Scott Fitzgerald'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/64317/pg64317.cover.medium.jpg',
+        downloadCount: 61200,
+        category: 'Fiction',
+        description: 'The story of Jay Gatsby and his pursuit of Daisy Buchanan in the Roaring Twenties.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/64317/pg64317.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/64317/pg64317.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 11,
+        title: "Alice's Adventures in Wonderland",
+        authors: ['Lewis Carroll'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/11/pg11.cover.medium.jpg',
+        downloadCount: 45100,
+        category: 'Fantasy',
+        description: "Alice's descent into a subterranean fantasy world of curious creatures.",
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/11/pg11.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/11/pg11.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 1661,
+        title: 'The Adventures of Sherlock Holmes',
+        authors: ['Arthur Conan Doyle'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/1661/pg1661.cover.medium.jpg',
+        downloadCount: 89400,
+        category: 'Adventure',
+        description: 'A collection of twelve short stories featuring Sherlock Holmes.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/1661/pg1661.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/1661/pg1661.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 2701,
+        title: 'Moby Dick; Or, The Whale',
+        authors: ['Herman Melville'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/2701/pg2701.cover.medium.jpg',
+        downloadCount: 65400,
+        category: 'Adventure',
+        description: 'The sailor Ishmael and Captain Ahab obsessively pursue the great white whale.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/2701/pg2701.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/2701/pg2701.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 345,
+        title: 'Dracula',
+        authors: ['Bram Stoker'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/345/pg345.cover.medium.jpg',
+        downloadCount: 58200,
+        category: 'Fiction',
+        description: 'The classic Gothic vampire novel introducing Count Dracula.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/345/pg345.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/345/pg345.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 174,
+        title: 'The Picture of Dorian Gray',
+        authors: ['Oscar Wilde'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/174/pg174.cover.medium.jpg',
+        downloadCount: 52100,
+        category: 'Fiction',
+        description: 'The story of a young man whose portrait ages while he remains youthful.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/174/pg174.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/174/pg174.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 1260,
+        title: 'Jane Eyre: An Autobiography',
+        authors: ['Charlotte Brontë'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/1260/pg1260.cover.medium.jpg',
+        downloadCount: 47900,
+        category: 'Romance',
+        description: 'The emotional growth and romance of orphan Jane Eyre at Thornfield Hall.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/1260/pg1260.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/1260/pg1260.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 98,
+        title: 'A Tale of Two Cities',
+        authors: ['Charles Dickens'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/98/pg98.cover.medium.jpg',
+        downloadCount: 43200,
+        category: 'History',
+        description: 'A historical novel set in London and Paris during the French Revolution.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/98/pg98.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/98/pg98.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 1513,
+        title: 'Romeo and Juliet',
+        authors: ['William Shakespeare'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/1513/pg1513.cover.medium.jpg',
+        downloadCount: 56700,
+        category: 'Romance',
+        description: 'The classic tragedy of two star-crossed lovers in Verona.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/1513/pg1513.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/1513/pg1513.cover.medium.jpg',
+        },
+      ),
+      Book(
+        id: 2591,
+        title: "Grimms' Fairy Tales",
+        authors: ['Jacob Grimm', 'Wilhelm Grimm'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/2591/pg2591.cover.medium.jpg',
+        downloadCount: 39800,
+        category: 'Fantasy',
+        description: 'Classic folk and fairy tales collected by the Brothers Grimm.',
+        formats: {
+          'text/plain; charset=utf-8': 'https://www.gutenberg.org/cache/epub/2591/pg2591.txt',
+          'image/jpeg': 'https://www.gutenberg.org/cache/epub/2591/pg2591.cover.medium.jpg',
+        },
+      ),
+    ];
   }
 
   /// Extracts readable text/HTML format URL from Book model if available

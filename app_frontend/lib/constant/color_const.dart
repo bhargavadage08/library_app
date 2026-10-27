@@ -12,4 +12,7 @@ class AppColor {
   static const Color white = Colors.white;
   static const Color border = Color(0xFFE6E0F0);
   static const Color textLight = Color(0xFF8B8798);
+
+  // Book Details Sacreen Colors
+  static const Color primaryDetailColor = Color(0xFF5B4BDB);
 }
