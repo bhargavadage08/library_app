@@ -49,3 +49,44 @@ class FavoriteToggleResponse(BaseModel):
     book_id: int
     is_favorite: bool
     message: str
+
+
+# --- Book Reading & Pagination Schemas ---
+
+class BookContentResponse(BaseModel):
+    book_id: int
+    title: str
+    authors: str
+    format: str = "text/plain"
+    total_length: int
+    content: str
+    is_cached: bool = False
+
+
+class BookPageResponse(BaseModel):
+    book_id: int
+    title: str
+    author: str = "Unknown Author"
+    page: int
+    page_size: int
+    total_pages: int
+    total_characters: int
+    content: str
+    has_prev: bool
+    has_next: bool
+    is_app_generated: bool = True
+
+
+class ReadingProgressUpdate(BaseModel):
+    current_page: int
+    total_pages: int
+
+
+class ReadingProgressResponse(BaseModel):
+    book_id: int
+    current_page: int
+    total_pages: int
+    percentage: float
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)

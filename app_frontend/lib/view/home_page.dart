@@ -4,6 +4,7 @@ import '../repo/book_repo.dart';
 import 'book_categories_page.dart';
 import 'book_read_screen.dart';
 import 'login_page.dart';
+import '../repo/auth_repo.dart';
 
 class HomePage extends StatefulWidget {
   final String? initialCategory;
@@ -62,6 +63,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showProfileDialog() {
+    final user = AuthService().currentUser;
+    final isLoggedIn = AuthService().isAuthenticated;
+
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -77,38 +81,59 @@ class _HomePageState extends State<HomePage> {
               Text('User Profile'),
             ],
           ),
-          content: const Column(
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Reader Account',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                user?.fullName ?? 'Guest Reader',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              SizedBox(height: 6),
-              Text('reader@bookhaven.com', style: TextStyle(color: Colors.grey)),
+              const SizedBox(height: 6),
+              Text(
+                user?.email ?? 'Not logged in (Guest)',
+                style: const TextStyle(color: Colors.grey),
+              ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: const Text('Close'),
             ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.white,
+            if (isLoggedIn)
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  AuthService().logout();
+                  Navigator.pop(dialogContext);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                  );
+                },
+                icon: const Icon(Icons.logout, size: 18),
+                label: const Text('Log Out'),
+              )
+            else
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                  );
+                },
+                icon: const Icon(Icons.login, size: 18),
+                label: const Text('Log In'),
               ),
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                );
-              },
-              icon: const Icon(Icons.logout, size: 18),
-              label: const Text('Log Out'),
-            ),
           ],
         );
       },
@@ -216,11 +241,52 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
+                  const SizedBox(height: 10),
+
+                  // Favorite Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(color: Color(0xFFFFCDD2)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () async {
+                        if (!AuthService().isAuthenticated) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please log in to save books to favorites'),
+                            ),
+                          );
+                          return;
+                        }
+                        final isFav = await _repository.toggleFavorite(book.id);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(isFav
+                                ? 'Saved "${book.title}" to favorites!'
+                                : 'Removed from favorites'),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.favorite_border_rounded, size: 18),
+                      label: const Text(
+                        'Favorite Book',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+
                   TextButton(
                     onPressed: () {
                       Navigator.pop(dialogContext);
                     },
-                    child: Text('Close', style: TextStyle(color: Colors.grey)),
+                    child: const Text('Close', style: TextStyle(color: Colors.grey)),
                   ),
                 ],
               ),
@@ -675,9 +741,18 @@ class _HomePageState extends State<HomePage> {
           } else if (index == 1) {
             _openCategories();
           } else if (index == 2) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Favorites coming soon!')),
-            );
+            if (!AuthService().isAuthenticated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please log in to view and sync your favorites!'),
+                ),
+              );
+            } else {
+              setState(() {
+                _query = 'Favorites';
+                _booksFuture = _repository.fetchFavorites();
+              });
+            }
           } else if (index == 3) {
             _showProfileDialog();
           }

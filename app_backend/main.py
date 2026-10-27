@@ -3,98 +3,105 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
 from core.database import Base, SessionLocal, engine
+import models  # Ensures all SQLAlchemy models are registered
 from models.book import Book
 from models.user import User
 from routes import api_router
 
 
 def seed_initial_data():
-    """Seed initial sample books and a default user if database is empty."""
+    """Seed initial sample books with authentic Gutenberg content and IDs."""
+    from services.book_reader_service import BookReaderService
+
     db = SessionLocal()
     try:
-        # Check if books already exist
-        if db.query(Book).count() == 0:
-            sample_books = [
-                Book(
-                    title="Frankenstein",
-                    author_name="Mary Wollstonecraft Shelley",
-                    category="Science",
-                    cover_url="https://www.gutenberg.org/cache/epub/84/pg84.cover.medium.jpg",
-                    description="The story of Victor Frankenstein and his monstrous creation.",
-                    content=(
-                        "You will rejoice to hear that no disaster has accompanied the "
-                        "commencement of an enterprise which you have regarded with such evil "
-                        "forebodings. I arrived here yesterday, and my first task is to assure "
-                        "my dear sister of my welfare and increasing confidence in the success "
-                        "of my undertaking.\n\n"
-                        "I am already far north of London, and as I walk in the streets of "
-                        "Petersburgh, I feel a cold northern breeze play upon my cheeks, which "
-                        "braces my nerves and fills me with delight."
-                    ),
-                    download_count=98250,
-                ),
-                Book(
-                    title="Pride and Prejudice",
-                    author_name="Jane Austen",
-                    category="Romance",
-                    cover_url="https://www.gutenberg.org/cache/epub/1342/pg1342.cover.medium.jpg",
-                    description="A classic romantic novel of manners written by Jane Austen in 1813.",
-                    content=(
-                        "It is a truth universally acknowledged, that a single man in possession "
-                        "of a good fortune, must be in want of a wife.\n\n"
-                        "However little known the feelings or views of such a man may be on his "
-                        "first entering a neighbourhood, this truth is so well fixed in the minds "
-                        "of the surrounding families, that he is considered the rightful property "
-                        "of some one or other of their daughters."
-                    ),
-                    download_count=75320,
-                ),
-                Book(
-                    title="The Great Gatsby",
-                    author_name="F. Scott Fitzgerald",
-                    category="Fiction",
-                    cover_url="https://www.gutenberg.org/cache/epub/64317/pg64317.cover.medium.jpg",
-                    description="The tragic story of Jay Gatsby and his pursuit of Daisy Buchanan.",
-                    content=(
-                        "In my younger and more vulnerable years my father gave me some advice "
-                        "that I've been turning over in my mind ever since.\n\n"
-                        "'Whenever you feel like criticizing any one,' he told me, 'just "
-                        "remember that all the people in this world haven't had the advantages "
-                        "that you've had.'"
-                    ),
-                    download_count=61200,
-                ),
-                Book(
-                    title="Alice's Adventures in Wonderland",
-                    author_name="Lewis Carroll",
-                    category="Fantasy",
-                    cover_url="https://www.gutenberg.org/cache/epub/11/pg11.cover.medium.jpg",
-                    description="Alice's descent into a subterranean fantasy world of curious creatures.",
-                    content=(
-                        "Alice was beginning to get very tired of sitting by her sister on the "
-                        "bank, and of having nothing to do: once or twice she had peeped into the "
-                        "book her sister was reading, but it had no pictures or conversations in "
-                        "it, 'and what is the use of a book,' thought Alice 'without pictures or "
-                        "conversations?'"
-                    ),
-                    download_count=45100,
-                ),
-                Book(
-                    title="The Adventures of Sherlock Holmes",
-                    author_name="Arthur Conan Doyle",
-                    category="Adventure",
-                    cover_url="https://www.gutenberg.org/cache/epub/1661/pg1661.cover.medium.jpg",
-                    description="A collection of twelve short stories featuring Sherlock Holmes.",
-                    content=(
-                        "To Sherlock Holmes she is always THE woman. I have seldom heard him "
-                        "mention her under any other name. In his eyes she eclipses and "
-                        "predominates the whole of her sex."
-                    ),
-                    download_count=89400,
-                ),
-            ]
-            db.add_all(sample_books)
-            db.commit()
+        sample_catalog = [
+            {
+                "id": 84,
+                "title": "Frankenstein; Or, The Modern Prometheus",
+                "author_name": "Mary Wollstonecraft Shelley",
+                "category": "Science",
+                "cover_url": "https://www.gutenberg.org/cache/epub/84/pg84.cover.medium.jpg",
+                "description": "The tragic story of Victor Frankenstein and his monstrous creation.",
+                "download_count": 98250,
+            },
+            {
+                "id": 1342,
+                "title": "Pride and Prejudice",
+                "author_name": "Jane Austen",
+                "category": "Romance",
+                "cover_url": "https://www.gutenberg.org/cache/epub/1342/pg1342.cover.medium.jpg",
+                "description": "A classic romantic novel of manners written by Jane Austen in 1813.",
+                "download_count": 75320,
+            },
+            {
+                "id": 64317,
+                "title": "The Great Gatsby",
+                "author_name": "F. Scott Fitzgerald",
+                "category": "Fiction",
+                "cover_url": "https://www.gutenberg.org/cache/epub/64317/pg64317.cover.medium.jpg",
+                "description": "The story of Jay Gatsby and his pursuit of Daisy Buchanan in the Roaring Twenties.",
+                "download_count": 61200,
+            },
+            {
+                "id": 11,
+                "title": "Alice's Adventures in Wonderland",
+                "author_name": "Lewis Carroll",
+                "category": "Fantasy",
+                "cover_url": "https://www.gutenberg.org/cache/epub/11/pg11.cover.medium.jpg",
+                "description": "Alice's descent into a subterranean fantasy world of curious creatures.",
+                "download_count": 45100,
+            },
+            {
+                "id": 1661,
+                "title": "The Adventures of Sherlock Holmes",
+                "author_name": "Arthur Conan Doyle",
+                "category": "Adventure",
+                "cover_url": "https://www.gutenberg.org/cache/epub/1661/pg1661.cover.medium.jpg",
+                "description": "A collection of twelve short stories featuring the legendary detective Sherlock Holmes.",
+                "download_count": 89400,
+            },
+        ]
+
+        # Ensure books with authentic Gutenberg IDs exist
+        for item in sample_catalog:
+            existing = db.query(Book).filter(Book.id == item["id"]).first()
+            if not existing:
+                try:
+                    content, _, _, _ = BookReaderService.get_book_readable_content(
+                        db=db,
+                        book_id=item["id"],
+                        fallback_title=item["title"],
+                        fallback_author=item["author_name"],
+                    )
+                except Exception:
+                    content = None
+                new_book = Book(
+                    id=item["id"],
+                    title=item["title"],
+                    author_name=item["author_name"],
+                    category=item["category"],
+                    cover_url=item["cover_url"],
+                    description=item["description"],
+                    content=content,
+                    download_count=item["download_count"],
+                )
+                db.add(new_book)
+                db.commit()
+
+        # Update legacy books (IDs 1-5) if they only have short placeholder snippets (<5000 chars)
+        legacy_map = {1: 84, 2: 1342, 3: 64317, 4: 11, 5: 1661}
+        for local_id, gid in legacy_map.items():
+            local_b = db.query(Book).filter(Book.id == local_id).first()
+            if local_b and (not local_b.content or len(local_b.content.strip()) < 5000):
+                g_book = db.query(Book).filter(Book.id == gid).first()
+                if g_book and g_book.content:
+                    local_b.content = g_book.content
+                    local_b.title = g_book.title
+                    local_b.author_name = g_book.author_name
+                    db.commit()
+    except Exception as e:
+        db.rollback()
     finally:
         db.close()
 
@@ -127,8 +134,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API v1 router
+# Include API routers (both /api/v1 and /api aliases)
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix="/api")
 
 
 @app.get("/", tags=["Health & Status"])

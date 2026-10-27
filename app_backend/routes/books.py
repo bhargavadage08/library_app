@@ -1,17 +1,22 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from models.user import User
 from schemas.book import (
+    BookContentResponse,
     BookCreate,
     BookDetailResponse,
+    BookPageResponse,
     BookResponse,
     BookUpdate,
     CategoryResponse,
     FavoriteToggleResponse,
+    ReadingProgressResponse,
+    ReadingProgressUpdate,
 )
 from services.book_service import BookService
+from services.book_reader_service import BookReaderService
 from .deps import get_current_user, get_optional_current_user
 
 router = APIRouter()
@@ -188,3 +193,113 @@ def toggle_favorite(
         is_favorite=is_favorite,
         message=message,
     )
+
+
+# --- Reading & Pagination Endpoints ---
+
+@router.get(
+    "/{book_id}/content",
+    response_model=BookContentResponse,
+    summary="Get full readable book content",
+)
+def get_book_content(
+    book_id: int,
+    fallback_url: Optional[str] = Query(None, description="Direct text or HTML format URL from formats"),
+    fallback_title: Optional[str] = Query(None, description="Optional book title from client"),
+    fallback_author: Optional[str] = Query(None, description="Optional book author from client"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve the full readable text or HTML content of a book.
+    Attempts local PostgreSQL database first, then caches, then Project Gutenberg mirrors.
+    """
+    return BookReaderService.get_book_content_response(
+        db=db,
+        book_id=book_id,
+        fallback_url=fallback_url,
+        fallback_title=fallback_title,
+        fallback_author=fallback_author,
+    )
+
+
+@router.get(
+    "/{book_id}/pages",
+    response_model=BookPageResponse,
+    summary="Get paginated reading page for a book",
+)
+def get_book_page(
+    book_id: int,
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    pageSize: int = Query(2500, ge=500, le=20000, description="Approximate characters per reading page"),
+    fallback_url: Optional[str] = Query(None, description="Direct text format URL from formats"),
+    fallback_title: Optional[str] = Query(None, description="Optional book title from client"),
+    fallback_author: Optional[str] = Query(None, description="Optional book author from client"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve a specific reading page for a book.
+    Uses smart word and paragraph boundary splitting to ensure text is never cut awkwardly.
+    """
+    return BookReaderService.get_book_pages(
+        db=db,
+        book_id=book_id,
+        page=page,
+        page_size=pageSize,
+        fallback_url=fallback_url,
+        fallback_title=fallback_title,
+        fallback_author=fallback_author,
+    )
+
+
+@router.get(
+    "/{book_id}/progress",
+    response_model=ReadingProgressResponse,
+    summary="Get reading progress for a book",
+)
+def get_reading_progress(
+    book_id: int,
+    x_device_id: Optional[str] = Header(None, alias="X-Device-Id"),
+    device_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    """
+    Retrieve saved reading progress (last-read page, percentage).
+    Associates with authenticated user, or falls back to device ID.
+    """
+    user_id = current_user.id if current_user else None
+    effective_device_id = x_device_id or device_id
+    return BookReaderService.get_reading_progress(
+        db=db,
+        book_id=book_id,
+        user_id=user_id,
+        device_id=effective_device_id,
+    )
+
+
+@router.put(
+    "/{book_id}/progress",
+    response_model=ReadingProgressResponse,
+    summary="Save reading progress for a book",
+)
+def save_reading_progress(
+    book_id: int,
+    progress_in: ReadingProgressUpdate,
+    x_device_id: Optional[str] = Header(None, alias="X-Device-Id"),
+    device_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    """
+    Save or update current reading position (page, total pages, percentage) in the database.
+    """
+    user_id = current_user.id if current_user else None
+    effective_device_id = x_device_id or device_id
+    return BookReaderService.save_reading_progress(
+        db=db,
+        book_id=book_id,
+        progress_in=progress_in,
+        user_id=user_id,
+        device_id=effective_device_id,
+    )
+

@@ -1,5 +1,6 @@
 from core.database import Base
 from .user import User
 from .book import Book, FavoriteBook
+from .reading_progress import ReadingProgress
 
-__all__ = ["Base", "User", "Book", "FavoriteBook"]
+__all__ = ["Base", "User", "Book", "FavoriteBook", "ReadingProgress"]

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/book_model.dart';
+import '../models/reading_models.dart';
 import '../repo/book_repo.dart';
+
+enum ReaderTheme { warm, light, dark }
 
 class BookReaderScreen extends StatefulWidget {
   final Book book;
@@ -13,34 +16,304 @@ class BookReaderScreen extends StatefulWidget {
 
 class _BookReaderScreenState extends State<BookReaderScreen> {
   final BookRepository _repository = BookRepository();
+  final ScrollController _scrollController = ScrollController();
 
-  late Future<String> _contentFuture;
+  int _currentPage = 1;
+  int _totalPages = 1;
+  bool _isLoading = true;
+  String? _errorMessage;
+  BookPage? _pageData;
   double _fontSize = 17;
+  ReaderTheme _readerTheme = ReaderTheme.warm;
+
+  Color get _backgroundColor {
+    switch (_readerTheme) {
+      case ReaderTheme.warm:
+        return const Color(0xFFFFFCF5);
+      case ReaderTheme.light:
+        return const Color(0xFFFFFFFF);
+      case ReaderTheme.dark:
+        return const Color(0xFF1E1E2E);
+    }
+  }
+
+  Color get _textColor {
+    switch (_readerTheme) {
+      case ReaderTheme.warm:
+        return const Color(0xFF2B2B2B);
+      case ReaderTheme.light:
+        return const Color(0xFF1A1A1A);
+      case ReaderTheme.dark:
+        return const Color(0xFFE2E2F0);
+    }
+  }
+
+  Color get _headerColor {
+    switch (_readerTheme) {
+      case ReaderTheme.warm:
+        return const Color(0xFF2D232E);
+      case ReaderTheme.light:
+        return const Color(0xFF111111);
+      case ReaderTheme.dark:
+        return Colors.white;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _contentFuture = _repository.fetchBookContent(widget.book);
+    _initReadingState();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Restores saved reading progress from backend and loads the page
+  Future<void> _initReadingState() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final savedProgress = await _repository.getReadingProgress(widget.book.id);
+      if (savedProgress != null && savedProgress.currentPage > 1) {
+        _currentPage = savedProgress.currentPage;
+      }
+    } catch (_) {
+      // Fallback to page 1
+    }
+
+    await _loadPage(_currentPage);
+  }
+
+  /// Fetches a specific page and saves the reading progress
+  Future<void> _loadPage(int targetPage) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final pageData = await _repository.fetchBookPage(
+        bookId: widget.book.id,
+        page: targetPage,
+        pageSize: 2500,
+        book: widget.book,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _pageData = pageData;
+        _currentPage = pageData.page;
+        _totalPages = pageData.totalPages;
+        _isLoading = false;
+      });
+
+      // Scroll smoothly to top of the page
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+
+      // Persist progress asynchronously
+      _repository.saveReadingProgress(
+        bookId: widget.book.id,
+        page: _currentPage,
+        totalPages: _totalPages,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _goToPreviousPage() {
+    if (_currentPage > 1 && !_isLoading) {
+      _loadPage(_currentPage - 1);
+    }
+  }
+
+  void _goToNextPage() {
+    if (_currentPage < _totalPages && !_isLoading) {
+      _loadPage(_currentPage + 1);
+    }
+  }
+
+  void _showJumpToPageDialog() {
+    if (_totalPages <= 1) return;
+    int target = _currentPage;
+    final controller = TextEditingController(text: _currentPage.toString());
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.auto_stories, color: Color(0xFF6C63FF)),
+                  SizedBox(width: 10),
+                  Text('Jump to Page'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Page $target of $_totalPages',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6C63FF),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Slider(
+                    value: target.toDouble().clamp(1.0, _totalPages.toDouble()),
+                    min: 1.0,
+                    max: _totalPages.toDouble(),
+                    divisions: _totalPages > 1 ? _totalPages - 1 : 1,
+                    activeColor: const Color(0xFF6C63FF),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        target = val.round();
+                        controller.text = target.toString();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Enter page number (1 - $_totalPages)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                    onChanged: (val) {
+                      final parsed = int.tryParse(val.trim());
+                      if (parsed != null && parsed >= 1 && parsed <= _totalPages) {
+                        setDialogState(() {
+                          target = parsed;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C63FF),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    if (target != _currentPage) {
+                      _loadPage(target);
+                    }
+                  },
+                  child: const Text('Go'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _cycleTheme() {
+    setState(() {
+      switch (_readerTheme) {
+        case ReaderTheme.warm:
+          _readerTheme = ReaderTheme.light;
+          break;
+        case ReaderTheme.light:
+          _readerTheme = ReaderTheme.dark;
+          break;
+        case ReaderTheme.dark:
+          _readerTheme = ReaderTheme.warm;
+          break;
+      }
+    });
+  }
+
+  IconData get _themeIcon {
+    switch (_readerTheme) {
+      case ReaderTheme.warm:
+        return Icons.wb_sunny_outlined;
+      case ReaderTheme.light:
+        return Icons.light_mode_outlined;
+      case ReaderTheme.dark:
+        return Icons.dark_mode_outlined;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final double readPercentage =
+        _totalPages > 0 ? (_currentPage / _totalPages) * 100 : 0.0;
+
     return Scaffold(
-      backgroundColor: Color(0xFFFFFCF5),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFF6C63FF),
         foregroundColor: Colors.white,
+        elevation: 1,
         leading: IconButton(
-          tooltip: 'Back',
+          tooltip: 'Back to Library',
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          widget.book.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.book.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              widget.book.authorName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+          ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Jump to page',
+            icon: const Icon(Icons.swap_calls_rounded),
+            onPressed: _totalPages > 1 ? _showJumpToPageDialog : null,
+          ),
+          IconButton(
+            tooltip: 'Reading Theme (Warm / Light / Dark)',
+            icon: Icon(_themeIcon),
+            onPressed: _cycleTheme,
+          ),
           IconButton(
             tooltip: 'Decrease text size',
             onPressed: () {
@@ -48,125 +321,368 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                 if (_fontSize > 12) _fontSize -= 1;
               });
             },
-            icon: Icon(Icons.text_decrease),
+            icon: const Icon(Icons.text_decrease),
           ),
           IconButton(
             tooltip: 'Increase text size',
             onPressed: () {
               setState(() {
-                if (_fontSize < 28) _fontSize += 1;
+                if (_fontSize < 30) _fontSize += 1;
               });
             },
-            icon: Icon(Icons.text_increase),
+            icon: const Icon(Icons.text_increase),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0x33FFFFFF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${readPercentage.toStringAsFixed(0)}%',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
-      body: FutureBuilder<String>(
-        future: _contentFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
-            );
-          }
+      body: _buildBody(),
+      bottomNavigationBar: _buildBottomPaginationBar(),
+    );
+  }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.menu_book_outlined,
-                      size: 55,
-                      color: Colors.grey,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'Error: ${snapshot.error}',
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'The book may not provide a supported text format, '
-                      'or the server may be unavailable.',
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _contentFuture = _repository.fetchBookContent(
-                            widget.book,
-                          );
-                        });
-                      },
-                      child: Text('Try Again'),
-                    ),
-                  ],
+  Widget _buildBody() {
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              color: Color(0xFF6C63FF),
+              strokeWidth: 3,
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Loading page $_currentPage of $_totalPages...',
+              style: TextStyle(
+                fontSize: 15,
+                color: _textColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Loading authentic complete book text',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.menu_book_outlined,
+                size: 56,
+                color: Color(0xFF6C63FF),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Unable to Load Page',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF25213B),
                 ),
               ),
-            );
-          }
+              const SizedBox(height: 10),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6C63FF),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () => _loadPage(_currentPage),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Try Again'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-          final content = snapshot.data ?? '';
+    final pageContent = _pageData?.content ?? '';
 
-          return SelectionArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    return SelectionArea(
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header on First Page
+                if (_currentPage == 1) ...[
                   Center(
                     child: Column(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.auto_stories_rounded,
-                          size: 42,
+                          size: 44,
                           color: Color(0xFF6C63FF),
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         Text(
                           widget.book.title,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 25,
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
+                            color: _headerColor,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
-                          widget.book.authorName,
+                          'by ${widget.book.authorName}',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black54, fontSize: 15),
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: _readerTheme == ReaderTheme.dark
+                                ? Colors.white70
+                                : Colors.black54,
+                          ),
                         ),
-                        SizedBox(height: 22),
-                        Divider(),
-                        SizedBox(height: 22),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0x1F6C63FF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Complete Edition • Full Text',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF6C63FF),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Divider(
+                          color: _readerTheme == ReaderTheme.dark
+                              ? Colors.white24
+                              : Colors.black12,
+                        ),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
-                  Text(
-                    content,
-                    style: TextStyle(
-                      fontSize: _fontSize,
-                      height: 1.8,
-                      color: Color(0xFF302D2D),
-                    ),
-                  ),
-                  SizedBox(height: 40),
-                  Center(
-                    child: Text(
-                      'End of available text',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
                 ],
+
+                // Actual Authentic Book Page Content
+                Text(
+                  pageContent,
+                  style: TextStyle(
+                    fontSize: _fontSize,
+                    height: 1.85,
+                    letterSpacing: 0.2,
+                    color: _textColor,
+                    fontFamily: 'serif',
+                  ),
+                ),
+
+                const SizedBox(height: 36),
+                Center(
+                  child: Text(
+                    'Page $_currentPage of $_totalPages • Complete Novel Text',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _readerTheme == ReaderTheme.dark
+                          ? Colors.white54
+                          : Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomPaginationBar() {
+    final bool canGoPrev = _currentPage > 1 && !_isLoading;
+    final bool canGoNext = _currentPage < _totalPages && !_isLoading;
+    final double progressVal =
+        _totalPages > 0 ? (_currentPage / _totalPages).clamp(0.0, 1.0) : 0.0;
+
+    final isDark = _readerTheme == ReaderTheme.dark;
+    final barBg = isDark ? const Color(0xFF28283C) : const Color(0xFFFFFDF9);
+    final borderColor = isDark ? Colors.white12 : const Color(0x409E9E9E);
+    final centerTextColor = isDark ? Colors.white : const Color(0xFF333333);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: barBg,
+        border: Border(
+          top: BorderSide(color: borderColor, width: 1),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Linear progress indicator
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progressVal,
+                backgroundColor: isDark ? Colors.white12 : const Color(0xFFE9E5DD),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
+                minHeight: 4,
               ),
             ),
-          );
-        },
+            const SizedBox(height: 8),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Previous Page Button
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canGoPrev
+                        ? const Color(0xFF6C63FF)
+                        : (isDark ? Colors.white12 : Colors.grey.shade300),
+                    foregroundColor: canGoPrev
+                        ? Colors.white
+                        : (isDark ? Colors.white38 : Colors.grey.shade600),
+                    elevation: canGoPrev ? 1 : 0,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: canGoPrev ? _goToPreviousPage : null,
+                  icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                  label: const Text(
+                    'Previous',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+
+                // Center page indicator with tap to jump
+                InkWell(
+                  onTap: _totalPages > 1 ? _showJumpToPageDialog : null,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Page $_currentPage of $_totalPages',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: centerTextColor,
+                              ),
+                            ),
+                            if (_totalPages > 1) ...[
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.unfold_more_rounded,
+                                size: 16,
+                                color: Color(0xFF6C63FF),
+                              ),
+                            ],
+                          ],
+                        ),
+                        Text(
+                          '${(progressVal * 100).toStringAsFixed(0)}% • Tap to jump',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? Colors.white60 : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Next Page Button
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canGoNext
+                        ? const Color(0xFF6C63FF)
+                        : (isDark ? Colors.white12 : Colors.grey.shade300),
+                    foregroundColor: canGoNext
+                        ? Colors.white
+                        : (isDark ? Colors.white38 : Colors.grey.shade600),
+                    elevation: canGoNext ? 1 : 0,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: canGoNext ? _goToNextPage : null,
+                  label: const Text(
+                    'Next',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
