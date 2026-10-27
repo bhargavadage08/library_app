@@ -1,29 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../constant/api_constants.dart';
-
-class AuthUser {
-  final int id;
-  final String email;
-  final String fullName;
-  final bool isActive;
-
-  const AuthUser({
-    required this.id,
-    required this.email,
-    required this.fullName,
-    this.isActive = true,
-  });
-
-  factory AuthUser.fromJson(Map<String, dynamic> json) {
-    return AuthUser(
-      id: json['id'] as int? ?? 0,
-      email: json['email'] as String? ?? '',
-      fullName: json['full_name'] as String? ?? 'Reader',
-      isActive: json['is_active'] as bool? ?? true,
-    );
-  }
-}
+import '../models/auth_model.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -38,11 +16,11 @@ class AuthService {
   bool get isAuthenticated => _token != null;
 
   Map<String, String> get authHeaders => {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        if (_token != null) 'Authorization': 'Bearer $_token',
-        'X-Device-Id': 'flutter-client',
-      };
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    if (_token != null) 'Authorization': 'Bearer $_token',
+    'X-Device-Id': 'flutter-client',
+  };
 
   /// Login with email and password via backend REST API
   Future<AuthUser> login({
@@ -54,19 +32,22 @@ class AuthService {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-            body: jsonEncode({
-              'email': email.trim(),
-              'password': password,
-            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email.trim(), 'password': password}),
           )
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         _token = data['access_token'] as String?;
         if (data['user'] is Map) {
-          _currentUser = AuthUser.fromJson(data['user'] as Map<String, dynamic>);
+          _currentUser = AuthUser.fromJson(
+            data['user'] as Map<String, dynamic>,
+          );
         } else {
           _currentUser = AuthUser(id: 1, email: email, fullName: 'Reader');
         }
@@ -79,7 +60,11 @@ class AuthService {
             final detail = errJson['detail'];
             if (detail is List) {
               msg = detail
-                  .map((e) => e is Map && e['msg'] != null ? e['msg'].toString() : e.toString())
+                  .map(
+                    (e) => e is Map && e['msg'] != null
+                        ? e['msg'].toString()
+                        : e.toString(),
+                  )
                   .join(', ');
             } else {
               msg = detail.toString();
@@ -113,7 +98,10 @@ class AuthService {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
             body: jsonEncode({
               'email': email.trim(),
               'password': password,
@@ -123,10 +111,13 @@ class AuthService {
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         _token = data['access_token'] as String?;
         if (data['user'] is Map) {
-          _currentUser = AuthUser.fromJson(data['user'] as Map<String, dynamic>);
+          _currentUser = AuthUser.fromJson(
+            data['user'] as Map<String, dynamic>,
+          );
         } else {
           _currentUser = AuthUser(id: 1, email: email, fullName: fullName);
         }
@@ -139,7 +130,11 @@ class AuthService {
             final detail = errJson['detail'];
             if (detail is List) {
               msg = detail
-                  .map((e) => e is Map && e['msg'] != null ? e['msg'].toString() : e.toString())
+                  .map(
+                    (e) => e is Map && e['msg'] != null
+                        ? e['msg'].toString()
+                        : e.toString(),
+                  )
                   .join(', ');
             } else {
               msg = detail.toString();
