@@ -1,16 +1,14 @@
-from typing import Generator
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
-from .config import settings
 
-# Configure database engine
-connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
+
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args=connect_args,
+    DATABASE_URL
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -19,9 +17,6 @@ Base = declarative_base()
 
 
 def get_db() -> Generator[Session, None, None]:
-    """
-    FastAPI dependency yielding a database session and closing it after request completion.
-    """
     db = SessionLocal()
     try:
         yield db
