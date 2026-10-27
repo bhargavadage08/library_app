@@ -79,7 +79,9 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
     });
 
     try {
-      final savedProgress = await _repository.getReadingProgress(widget.book.id);
+      final savedProgress = await _repository.getReadingProgress(
+        widget.book.id,
+      );
       if (savedProgress != null && savedProgress.currentPage > 1) {
         _currentPage = savedProgress.currentPage;
       }
@@ -160,7 +162,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: const Row(
+              title: Row(
                 children: [
                   Icon(Icons.auto_stories, color: Color(0xFF6C63FF)),
                   SizedBox(width: 10),
@@ -172,19 +174,19 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                 children: [
                   Text(
                     'Page $target of $_totalPages',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF6C63FF),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Slider(
                     value: target.toDouble().clamp(1.0, _totalPages.toDouble()),
                     min: 1.0,
                     max: _totalPages.toDouble(),
                     divisions: _totalPages > 1 ? _totalPages - 1 : 1,
-                    activeColor: const Color(0xFF6C63FF),
+                    activeColor: Color(0xFF6C63FF),
                     onChanged: (val) {
                       setDialogState(() {
                         target = val.round();
@@ -192,7 +194,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   TextField(
                     controller: controller,
                     keyboardType: TextInputType.number,
@@ -201,14 +203,16 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 10,
                       ),
                     ),
                     onChanged: (val) {
                       final parsed = int.tryParse(val.trim());
-                      if (parsed != null && parsed >= 1 && parsed <= _totalPages) {
+                      if (parsed != null &&
+                          parsed >= 1 &&
+                          parsed <= _totalPages) {
                         setDialogState(() {
                           target = parsed;
                         });
@@ -220,11 +224,11 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text('Cancel'),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6C63FF),
+                    backgroundColor: Color(0xFF6C63FF),
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () {
@@ -233,7 +237,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                       _loadPage(target);
                     }
                   },
-                  child: const Text('Go'),
+                  child: Text('Go'),
                 ),
               ],
             );
@@ -272,18 +276,19 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double readPercentage =
-        _totalPages > 0 ? (_currentPage / _totalPages) * 100 : 0.0;
+    final double readPercentage = _totalPages > 0
+        ? (_currentPage / _totalPages) * 100
+        : 0.0;
 
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF6C63FF),
+        backgroundColor: Color(0xFF6C63FF),
         foregroundColor: Colors.white,
         elevation: 1,
         leading: IconButton(
           tooltip: 'Back to Library',
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
@@ -293,20 +298,20 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
               widget.book.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(
               widget.book.authorName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Colors.white70),
+              style: TextStyle(fontSize: 12, color: Colors.white70),
             ),
           ],
         ),
         actions: [
           IconButton(
             tooltip: 'Jump to page',
-            icon: const Icon(Icons.swap_calls_rounded),
+            icon: Icon(Icons.swap_calls_rounded),
             onPressed: _totalPages > 1 ? _showJumpToPageDialog : null,
           ),
           IconButton(
@@ -321,7 +326,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                 if (_fontSize > 12) _fontSize -= 1;
               });
             },
-            icon: const Icon(Icons.text_decrease),
+            icon: Icon(Icons.text_decrease),
           ),
           IconButton(
             tooltip: 'Increase text size',
@@ -330,19 +335,19 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                 if (_fontSize < 30) _fontSize += 1;
               });
             },
-            icon: const Icon(Icons.text_increase),
+            icon: Icon(Icons.text_increase),
           ),
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            margin: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0x33FFFFFF),
+              color: Color(0x33FFFFFF),
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
             child: Text(
               '${readPercentage.toStringAsFixed(0)}%',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -362,11 +367,8 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(
-              color: Color(0xFF6C63FF),
-              strokeWidth: 3,
-            ),
-            const SizedBox(height: 18),
+            CircularProgressIndicator(color: Color(0xFF6C63FF), strokeWidth: 3),
+            SizedBox(height: 18),
             Text(
               'Loading page $_currentPage of $_totalPages...',
               style: TextStyle(
@@ -375,8 +377,8 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'Loading authentic complete book text',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
@@ -388,17 +390,17 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(28),
+          padding: EdgeInsets.all(28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.menu_book_outlined,
                 size: 56,
                 color: Color(0xFF6C63FF),
               ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'Unable to Load Page',
                 style: TextStyle(
                   fontSize: 18,
@@ -406,26 +408,25 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                   color: Color(0xFF25213B),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                style: TextStyle(fontSize: 14, color: Colors.black87),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6C63FF),
+                  backgroundColor: Color(0xFF6C63FF),
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
                 onPressed: () => _loadPage(_currentPage),
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try Again'),
+                icon: Icon(Icons.refresh, size: 18),
+                label: Text('Try Again'),
               ),
             ],
           ),
@@ -441,7 +442,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
         thumbVisibility: true,
         child: SingleChildScrollView(
           controller: _scrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Column(
@@ -452,12 +453,12 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                   Center(
                     child: Column(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.auto_stories_rounded,
                           size: 44,
                           color: Color(0xFF6C63FF),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Text(
                           widget.book.title,
                           textAlign: TextAlign.center,
@@ -467,7 +468,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                             color: _headerColor,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6),
                         Text(
                           'by ${widget.book.authorName}',
                           textAlign: TextAlign.center,
@@ -478,17 +479,17 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                                 : Colors.black54,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0x1F6C63FF),
+                            color: Color(0x1F6C63FF),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Complete Edition • Full Text',
                             style: TextStyle(
                               fontSize: 11,
@@ -497,13 +498,13 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                         Divider(
                           color: _readerTheme == ReaderTheme.dark
                               ? Colors.white24
                               : Colors.black12,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                       ],
                     ),
                   ),
@@ -521,7 +522,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 36),
+                SizedBox(height: 36),
                 Center(
                   child: Text(
                     'Page $_currentPage of $_totalPages • Complete Novel Text',
@@ -534,7 +535,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
               ],
             ),
           ),
@@ -546,8 +547,9 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
   Widget _buildBottomPaginationBar() {
     final bool canGoPrev = _currentPage > 1 && !_isLoading;
     final bool canGoNext = _currentPage < _totalPages && !_isLoading;
-    final double progressVal =
-        _totalPages > 0 ? (_currentPage / _totalPages).clamp(0.0, 1.0) : 0.0;
+    final double progressVal = _totalPages > 0
+        ? (_currentPage / _totalPages).clamp(0.0, 1.0)
+        : 0.0;
 
     final isDark = _readerTheme == ReaderTheme.dark;
     final barBg = isDark ? const Color(0xFF28283C) : const Color(0xFFFFFDF9);
@@ -555,13 +557,11 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
     final centerTextColor = isDark ? Colors.white : const Color(0xFF333333);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: barBg,
-        border: Border(
-          top: BorderSide(color: borderColor, width: 1),
-        ),
-        boxShadow: const [
+        border: Border(top: BorderSide(color: borderColor, width: 1)),
+        boxShadow: [
           BoxShadow(
             color: Color(0x0A000000),
             blurRadius: 8,
@@ -578,13 +578,12 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: progressVal,
-                backgroundColor: isDark ? Colors.white12 : const Color(0xFFE9E5DD),
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
+                backgroundColor: isDark ? Colors.white12 : Color(0xFFE9E5DD),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
                 minHeight: 4,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -593,21 +592,20 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: canGoPrev
-                        ? const Color(0xFF6C63FF)
+                        ? Color(0xFF6C63FF)
                         : (isDark ? Colors.white12 : Colors.grey.shade300),
                     foregroundColor: canGoPrev
                         ? Colors.white
                         : (isDark ? Colors.white38 : Colors.grey.shade600),
                     elevation: canGoPrev ? 1 : 0,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   onPressed: canGoPrev ? _goToPreviousPage : null,
-                  icon: const Icon(Icons.chevron_left_rounded, size: 20),
-                  label: const Text(
+                  icon: Icon(Icons.chevron_left_rounded, size: 20),
+                  label: Text(
                     'Previous',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
@@ -618,8 +616,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                   onTap: _totalPages > 1 ? _showJumpToPageDialog : null,
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -635,8 +632,8 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                               ),
                             ),
                             if (_totalPages > 1) ...[
-                              const SizedBox(width: 4),
-                              const Icon(
+                              SizedBox(width: 4),
+                              Icon(
                                 Icons.unfold_more_rounded,
                                 size: 16,
                                 color: Color(0xFF6C63FF),
@@ -648,7 +645,9 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                           '${(progressVal * 100).toStringAsFixed(0)}% • Tap to jump',
                           style: TextStyle(
                             fontSize: 11,
-                            color: isDark ? Colors.white60 : Colors.grey.shade600,
+                            color: isDark
+                                ? Colors.white60
+                                : Colors.grey.shade600,
                           ),
                         ),
                       ],
@@ -660,24 +659,23 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: canGoNext
-                        ? const Color(0xFF6C63FF)
+                        ? Color(0xFF6C63FF)
                         : (isDark ? Colors.white12 : Colors.grey.shade300),
                     foregroundColor: canGoNext
                         ? Colors.white
                         : (isDark ? Colors.white38 : Colors.grey.shade600),
                     elevation: canGoNext ? 1 : 0,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   onPressed: canGoNext ? _goToNextPage : null,
-                  label: const Text(
+                  label: Text(
                     'Next',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
-                  icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                  icon: Icon(Icons.chevron_right_rounded, size: 20),
                 ),
               ],
             ),

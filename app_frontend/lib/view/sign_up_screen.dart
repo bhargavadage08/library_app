@@ -47,36 +47,36 @@ class _SignupPageState extends State<SignupPage> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email address')),
+        SnackBar(content: Text('Please enter your email address')),
       );
       return;
     }
 
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address')),
+        SnackBar(content: Text('Please enter a valid email address')),
       );
       return;
     }
 
     if (password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please create a password')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Please create a password')));
       return;
     }
 
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters')),
+        SnackBar(content: Text('Password must be at least 6 characters')),
       );
       return;
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -104,7 +104,7 @@ class _SignupPageState extends State<SignupPage> {
       // Navigate to Home and clear auth screens from back stack
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(builder: (context) => HomePage()),
         (route) => false,
       );
     } catch (e) {
@@ -115,7 +115,7 @@ class _SignupPageState extends State<SignupPage> {
         SnackBar(
           content: Text(errorMessage),
           backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 4),
+          duration: Duration(seconds: 4),
         ),
       );
     } finally {
@@ -128,22 +128,22 @@ class _SignupPageState extends State<SignupPage> {
   InputDecoration inputDecoration(String hint, IconData icon) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColor.textLight, fontSize: 14),
+      hintStyle: TextStyle(color: AppColor.textLight, fontSize: 14),
       prefixIcon: Icon(icon, color: AppColor.primary),
       filled: true,
-      fillColor: const Color(0xFFFCFAFF),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
+      fillColor: Color(0xFFFCFAFF),
+      contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2D7F5)),
+        borderSide: BorderSide(color: Color(0xFFE2D7F5)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2D7F5)),
+        borderSide: BorderSide(color: Color(0xFFE2D7F5)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
+        borderSide: BorderSide(color: AppColor.primary, width: 1.5),
       ),
     );
   }
@@ -154,15 +154,15 @@ class _SignupPageState extends State<SignupPage> {
       backgroundColor: AppColor.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(25),
+          padding: EdgeInsets.all(25),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (Navigator.canPop(context))
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: EdgeInsets.only(bottom: 12),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                    icon: Icon(Icons.arrow_back_ios_new_rounded),
                     color: AppColor.textDark,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -170,7 +170,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                 )
               else
-                const SizedBox(height: 15),
+                SizedBox(height: 15),
 
               Center(
                 child: Container(
@@ -180,7 +180,7 @@ class _SignupPageState extends State<SignupPage> {
                     color: AppColor.primary,
                     borderRadius: BorderRadius.circular(22),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.menu_book_rounded,
                     color: Colors.white,
                     size: 42,
@@ -188,9 +188,9 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
 
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
 
-              const Center(
+              Center(
                 child: Text(
                   'Create Account',
                   style: TextStyle(
@@ -201,9 +201,9 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
 
-              const Center(
+              Center(
                 child: Text(
                   'Join us and discover your next favorite book.',
                   textAlign: TextAlign.center,
@@ -211,14 +211,14 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
 
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
 
-              const Text(
+              Text(
                 'Full Name',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
 
               TextField(
                 controller: nameController,
@@ -231,14 +231,14 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
 
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
 
-              const Text(
+              Text(
                 'Email Address',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
 
               TextField(
                 controller: emailController,
@@ -251,48 +251,49 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
 
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
 
-              const Text(
+              Text(
                 'Password',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
 
               TextField(
                 controller: passwordController,
                 enabled: !_isLoading,
                 obscureText: hidePassword,
                 textInputAction: TextInputAction.next,
-                decoration: inputDecoration(
-                  'Create a password',
-                  Icons.lock_outline,
-                ).copyWith(
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        hidePassword = !hidePassword;
-                      });
-                    },
-                    icon: Icon(
-                      hidePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: AppColor.textLight,
+                decoration:
+                    inputDecoration(
+                      'Create a password',
+                      Icons.lock_outline,
+                    ).copyWith(
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            hidePassword = !hidePassword;
+                          });
+                        },
+                        icon: Icon(
+                          hidePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: AppColor.textLight,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
               ),
 
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
 
-              const Text(
+              Text(
                 'Confirm Password',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
 
               TextField(
                 controller: confirmPasswordController,
@@ -300,27 +301,28 @@ class _SignupPageState extends State<SignupPage> {
                 obscureText: hideConfirmPassword,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => signupUser(),
-                decoration: inputDecoration(
-                  'Confirm your password',
-                  Icons.lock_outline,
-                ).copyWith(
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        hideConfirmPassword = !hideConfirmPassword;
-                      });
-                    },
-                    icon: Icon(
-                      hideConfirmPassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: AppColor.textLight,
+                decoration:
+                    inputDecoration(
+                      'Confirm your password',
+                      Icons.lock_outline,
+                    ).copyWith(
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            hideConfirmPassword = !hideConfirmPassword;
+                          });
+                        },
+                        icon: Icon(
+                          hideConfirmPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: AppColor.textLight,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
               ),
 
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
 
               SizedBox(
                 width: double.infinity,
@@ -336,7 +338,7 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ),
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 22,
                           width: 22,
                           child: CircularProgressIndicator(
@@ -344,7 +346,7 @@ class _SignupPageState extends State<SignupPage> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Create Account',
                           style: TextStyle(
                             fontSize: 16,
@@ -354,12 +356,12 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
 
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'Already have an account?',
                     style: TextStyle(color: AppColor.textLight, fontSize: 13),
                   ),
@@ -373,12 +375,12 @@ class _SignupPageState extends State<SignupPage> {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const LoginPage(),
+                                  builder: (context) => LoginPage(),
                                 ),
                               );
                             }
                           },
-                    child: const Text(
+                    child: Text(
                       'Login',
                       style: TextStyle(
                         color: AppColor.primary,

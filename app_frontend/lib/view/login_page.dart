@@ -32,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
+         SnackBar(content: Text('Please enter email and password')),
       );
       return;
     }
@@ -46,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(builder: (context) =>  HomePage()),
       );
     } catch (e) {
       if (!mounted) return;
@@ -69,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
     showDialog<void>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text(
+        title:  Text(
           'Create Account',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
@@ -78,24 +78,24 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             TextField(
               controller: nameCtrl,
-              decoration: const InputDecoration(
+              decoration:  InputDecoration(
                 labelText: 'Full Name',
                 hintText: 'Alice Reader',
               ),
             ),
-            const SizedBox(height: 12),
+             SizedBox(height: 12),
             TextField(
               controller: signupEmailCtrl,
-              decoration: const InputDecoration(
+              decoration:  InputDecoration(
                 labelText: 'Email',
                 hintText: 'reader@example.com',
               ),
               keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 12),
+             SizedBox(height: 12),
             TextField(
               controller: signupPassCtrl,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration:  InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
           ],
@@ -103,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
+            child:  Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -116,7 +116,7 @@ class _LoginPageState extends State<LoginPage> {
               final name = nameCtrl.text.trim();
               if (email.isEmpty || password.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Email and password required')),
+                   SnackBar(content: Text('Email and password required')),
                 );
                 return;
               }
@@ -136,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                 );
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  MaterialPageRoute(builder: (context) =>  HomePage()),
                 );
               } catch (e) {
                 if (!mounted) return;
@@ -150,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
                 if (mounted) setState(() => _isLoading = false);
               }
             },
-            child: const Text('Register'),
+            child:  Text('Register'),
           ),
         ],
       ),
@@ -163,11 +163,11 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: AppColor.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(25),
+          padding:  EdgeInsets.all(25),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 35),
+               SizedBox(height: 35),
 
               Center(
                 child: Container(
@@ -180,11 +180,11 @@ class _LoginPageState extends State<LoginPage> {
                       BoxShadow(
                         color: AppColor.primary.withValues(alpha: 0.3),
                         blurRadius: 15,
-                        offset: const Offset(0, 8),
+                        offset:  Offset(0, 8),
                       ),
                     ],
                   ),
-                  child: const Center(
+                  child:  Center(
                     child: Icon(
                       Icons.menu_book_rounded,
                       color: Colors.white,
@@ -194,9 +194,9 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 25),
+               SizedBox(height: 25),
 
-              const Center(
+               Center(
                 child: Text(
                   'Book Haven',
                   style: TextStyle(
@@ -207,18 +207,18 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 8),
+               SizedBox(height: 8),
 
-              const Center(
+               Center(
                 child: Text(
                   'Welcome back! Read your favorite books',
                   style: TextStyle(fontSize: 14, color: AppColor.textLight),
                 ),
               ),
 
-              const SizedBox(height: 35),
+               SizedBox(height: 35),
 
-              const Text(
+               Text(
                 'Email Address',
                 style: TextStyle(
                   fontSize: 14,
@@ -227,23 +227,23 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 8),
+               SizedBox(height: 8),
 
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   hintText: 'Enter your email',
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  prefixIcon:  Icon(Icons.email_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 20),
+               SizedBox(height: 20),
 
-              const Text(
+               Text(
                 'Password',
                 style: TextStyle(
                   fontSize: 14,
@@ -252,14 +252,14 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 8),
+               SizedBox(height: 8),
 
               TextField(
                 controller: passwordController,
                 obscureText: hidePassword,
                 decoration: InputDecoration(
                   hintText: 'Enter your password',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon:  Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
                       hidePassword ? Icons.visibility_off : Icons.visibility,
@@ -276,7 +276,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 12),
+               SizedBox(height: 12),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -292,7 +292,7 @@ class _LoginPageState extends State<LoginPage> {
                           });
                         },
                       ),
-                      const Text(
+                       Text(
                         'Remember me',
                         style: TextStyle(
                           fontSize: 13,
@@ -303,7 +303,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   TextButton(
                     onPressed: () {},
-                    child: const Text(
+                    child:  Text(
                       'Forgot Password?',
                       style: TextStyle(color: AppColor.primary, fontSize: 13),
                     ),
@@ -311,7 +311,7 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
 
-              const SizedBox(height: 20),
+               SizedBox(height: 20),
 
               SizedBox(
                 width: double.infinity,
@@ -326,7 +326,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   child: _isLoading
-                      ? const SizedBox(
+                      ?  SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
@@ -334,7 +334,7 @@ class _LoginPageState extends State<LoginPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
+                      :  Text(
                           'Login',
                           style: TextStyle(
                             fontSize: 16,
@@ -344,10 +344,10 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 25),
+               SizedBox(height: 25),
 
               Row(
-                children: const [
+                children:  [
                   Expanded(child: Divider()),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12),
@@ -360,7 +360,7 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
 
-              const SizedBox(height: 20),
+               SizedBox(height: 20),
 
               SizedBox(
                 width: double.infinity,
@@ -369,16 +369,16 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const HomePage()),
+                      MaterialPageRoute(builder: (context) =>  HomePage()),
                     );
                   },
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE2D7F5)),
+                    side:  BorderSide(color: Color(0xFFE2D7F5)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Row(
+                  child:  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
@@ -400,12 +400,12 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 25),
+               SizedBox(height: 25),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                   Text(
                     "Don't have an account?",
                     style: TextStyle(color: AppColor.textLight),
                   ),
@@ -414,7 +414,7 @@ class _LoginPageState extends State<LoginPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const SignupPage(),
+                          builder: (context) => SignupPage(),
                         ),
                       );
                     },

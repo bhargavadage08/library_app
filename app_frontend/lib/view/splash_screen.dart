@@ -44,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(),
+                Spacer(),
         
               Container(
                 height: 120,
@@ -56,18 +56,18 @@ class _SplashScreenState extends State<SplashScreen> {
                     BoxShadow(
                       color: AppColor.primaryColor.withValues(alpha: 0.2),
                       blurRadius: 20,
-                      offset: const Offset(0, 10),
+                      offset:   Offset(0, 10),
                     ),
                   ],
                 ),
-                child: const Icon(
+                child:   Icon(
                   Icons.menu_book_rounded,
                   size: 65,
                   color: Colors.white,
                 ),
               ),
         
-              const SizedBox(height: 28),
+                SizedBox(height: 28),
         
               Text(
                 'Book Haven',
@@ -79,9 +79,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
         
-              const SizedBox(height: 12),
+                SizedBox(height: 12),
         
-              const Text(
+                Text(
                 'A world of stories, just for you',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -90,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
         
-              const SizedBox(height: 40),
+                SizedBox(height: 40),
         
               SizedBox(
                 height: 28,
@@ -101,9 +101,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
         
-              const Spacer(),
+                Spacer(),
         
-              const Padding(
+                Padding(
                 padding: EdgeInsets.only(bottom: 20),
                 child: Text(
                   'DISCOVER • READ • REPEAT',

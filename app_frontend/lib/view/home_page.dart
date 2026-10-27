@@ -74,7 +74,7 @@ class _HomePageState extends State<HomePage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Row(
+          title:   Row(
             children: [
               Icon(Icons.person_rounded, color: primaryColor),
               SizedBox(width: 10),
@@ -87,19 +87,19 @@ class _HomePageState extends State<HomePage> {
             children: [
               Text(
                 user?.fullName ?? 'Guest Reader',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style:   TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              const SizedBox(height: 6),
+                SizedBox(height: 6),
               Text(
                 user?.email ?? 'Not logged in (Guest)',
-                style: const TextStyle(color: Colors.grey),
+                style:   TextStyle(color: Colors.grey),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Close'),
+              child:   Text('Close'),
             ),
             if (isLoggedIn)
               ElevatedButton.icon(
@@ -112,11 +112,11 @@ class _HomePageState extends State<HomePage> {
                   Navigator.pop(dialogContext);
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    MaterialPageRoute(builder: (_) =>   LoginPage()),
                   );
                 },
-                icon: const Icon(Icons.logout, size: 18),
-                label: const Text('Log Out'),
+                icon:   Icon(Icons.logout, size: 18),
+                label:   Text('Log Out'),
               )
             else
               ElevatedButton.icon(
@@ -128,11 +128,11 @@ class _HomePageState extends State<HomePage> {
                   Navigator.pop(dialogContext);
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    MaterialPageRoute(builder: (_) =>   LoginPage()),
                   );
                 },
-                icon: const Icon(Icons.login, size: 18),
-                label: const Text('Log In'),
+                icon:   Icon(Icons.login, size: 18),
+                label:   Text('Log In'),
               ),
           ],
         );
@@ -241,7 +241,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
                   // Favorite Button
                   SizedBox(
@@ -249,8 +249,8 @@ class _HomePageState extends State<HomePage> {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.redAccent,
-                        side: const BorderSide(color: Color(0xFFFFCDD2)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side:   BorderSide(color: Color(0xFFFFCDD2)),
+                        padding:   EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -258,7 +258,7 @@ class _HomePageState extends State<HomePage> {
                       onPressed: () async {
                         if (!AuthService().isAuthenticated) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                              SnackBar(
                               content: Text('Please log in to save books to favorites'),
                             ),
                           );
@@ -274,8 +274,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.favorite_border_rounded, size: 18),
-                      label: const Text(
+                      icon:   Icon(Icons.favorite_border_rounded, size: 18),
+                      label:   Text(
                         'Favorite Book',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
@@ -286,7 +286,7 @@ class _HomePageState extends State<HomePage> {
                     onPressed: () {
                       Navigator.pop(dialogContext);
                     },
-                    child: const Text('Close', style: TextStyle(color: Colors.grey)),
+                    child:   Text('Close', style: TextStyle(color: Colors.grey)),
                   ),
                 ],
               ),
@@ -743,7 +743,7 @@ class _HomePageState extends State<HomePage> {
           } else if (index == 2) {
             if (!AuthService().isAuthenticated) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+                  SnackBar(
                   content: Text('Please log in to view and sync your favorites!'),
                 ),
               );
@@ -757,7 +757,7 @@ class _HomePageState extends State<HomePage> {
             _showProfileDialog();
           }
         },
-        items: const [
+        items:   [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
             label: 'Home',
