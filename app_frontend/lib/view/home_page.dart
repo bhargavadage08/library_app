@@ -5,6 +5,7 @@ import 'book_categories_page.dart';
 import 'book_detail_screen.dart';
 import 'login_page.dart';
 import '../repo/auth_repo.dart';
+import 'favorites_screen.dart';
 
 class HomePage extends StatefulWidget {
   final String? initialCategory;
@@ -20,6 +21,7 @@ class _HomePageState extends State<HomePage> {
 
   final BookRepository _repository = BookRepository();
   final TextEditingController _searchController = TextEditingController();
+  final List<Book> favoriteBooks = [];
 
   late Future<List<Book>> _booksFuture;
   String _query = '';
@@ -62,6 +64,16 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Widget _coverPlaceholer() {
+    return Container(
+      width: double.infinity,
+      color: Color(0xFFE9E5FF),
+      child: Center(
+        child: Icon(Icons.menu_book_rounded, size: 55, color: primaryColor),
+      ),
+    );
+  }
+
   void _showProfileDialog() {
     final user = AuthService().currentUser;
     final isLoggedIn = AuthService().isAuthenticated;
@@ -74,7 +86,7 @@ class _HomePageState extends State<HomePage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title:   Row(
+          title: Row(
             children: [
               Icon(Icons.person_rounded, color: primaryColor),
               SizedBox(width: 10),
@@ -87,19 +99,19 @@ class _HomePageState extends State<HomePage> {
             children: [
               Text(
                 user?.fullName ?? 'Guest Reader',
-                style:   TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-                SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 user?.email ?? 'Not logged in (Guest)',
-                style:   TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.grey),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child:   Text('Close'),
+              child: Text('Close'),
             ),
             if (isLoggedIn)
               ElevatedButton.icon(
@@ -112,11 +124,11 @@ class _HomePageState extends State<HomePage> {
                   Navigator.pop(dialogContext);
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) =>   LoginPage()),
+                    MaterialPageRoute(builder: (_) => LoginPage()),
                   );
                 },
-                icon:   Icon(Icons.logout, size: 18),
-                label:   Text('Log Out'),
+                icon: Icon(Icons.logout, size: 18),
+                label: Text('Log Out'),
               )
             else
               ElevatedButton.icon(
@@ -128,11 +140,11 @@ class _HomePageState extends State<HomePage> {
                   Navigator.pop(dialogContext);
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) =>   LoginPage()),
+                    MaterialPageRoute(builder: (_) => LoginPage()),
                   );
                 },
-                icon:   Icon(Icons.login, size: 18),
-                label:   Text('Log In'),
+                icon: Icon(Icons.login, size: 18),
+                label: Text('Log In'),
               ),
           ],
         );
@@ -144,9 +156,7 @@ class _HomePageState extends State<HomePage> {
   void _showBookDetails(Book book) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => BookDetailsScreen(book: book),
-      ),
+      MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
     );
   }
 
@@ -486,10 +496,10 @@ class _HomePageState extends State<HomePage> {
                                                   debugPrint(
                                                     'Cover error: $error',
                                                   );
-                                                  return _coverPlaceholder();
+                                                  return _coverPlaceholer();
                                                 },
                                           )
-                                        : _coverPlaceholder(),
+                                        : _coverPlaceholer(),
                                   ),
                                 ),
                               ),
@@ -582,35 +592,47 @@ class _HomePageState extends State<HomePage> {
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
+
         onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
+
           if (index == 0) {
+            // Home
             if (_query.isNotEmpty) {
               _searchController.clear();
               _searchBooks('');
             }
           } else if (index == 1) {
+            // Categories
             _openCategories();
           } else if (index == 2) {
+            // Favorites
             if (!AuthService().isAuthenticated) {
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                  content: Text('Please log in to view and sync your favorites!'),
+                const SnackBar(
+                  content: Text(
+                    'Please log in to view and sync your favorites!',
+                  ),
                 ),
               );
             } else {
-              setState(() {
-                _query = 'Favorites';
-                _booksFuture = _repository.fetchFavorites();
-              });
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      FavoritesScreen(favoriteBook: favoriteBooks),
+                ),
+              );
             }
           } else if (index == 3) {
+            // Profile
             _showProfileDialog();
           }
         },
-        items:   [
+
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
             label: 'Home',
@@ -628,17 +650,6 @@ class _HomePageState extends State<HomePage> {
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-
-  // Placeholder when a cover is missing or fails to load
-  Widget _coverPlaceholder() {
-    return Container(
-      width: double.infinity,
-      color: Color(0xFFE9E5FF),
-      child: Center(
-        child: Icon(Icons.menu_book_rounded, size: 55, color: primaryColor),
       ),
     );
   }

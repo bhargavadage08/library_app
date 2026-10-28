@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
+import 'favorites_screen.dart';
+import '../constant/color_const.dart';
 
 class BookCategoriesPage extends StatelessWidget {
   const BookCategoriesPage({super.key});
@@ -155,6 +157,48 @@ class BookCategoriesPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        selectedItemColor: AppColor.primary,
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
+          } else if (index == 1) {
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => FavoritesScreen(favoriteBook: [],)),
+            );
+          } else if (index == 3) {}
+        },
+
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.category_outlined),
+            label: 'Categories',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_border_rounded),
+            label: 'Favorites',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }
