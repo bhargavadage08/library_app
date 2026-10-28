@@ -1,9 +1,11 @@
+import 'package:app_frontend/view/profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/book_model.dart';
 import '../repo/book_repo.dart';
 import 'book_categories_page.dart';
 import 'book_detail_screen.dart';
 import 'login_page.dart';
+import '../constant/color_const.dart';
 import '../repo/auth_repo.dart';
 import 'favorites_screen.dart';
 
@@ -588,7 +590,7 @@ class _HomePageState extends State<HomePage> {
       // Bottom navigation
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        selectedItemColor: primaryColor,
+        selectedItemColor: AppColor.primary,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
@@ -627,8 +629,10 @@ class _HomePageState extends State<HomePage> {
               );
             }
           } else if (index == 3) {
-            // Profile
-            _showProfileDialog();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
+            );
           }
         },
 

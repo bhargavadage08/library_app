@@ -91,3 +91,20 @@ def get_me(
     Retrieve profile details for the currently authenticated user.
     """
     return current_user
+
+
+
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+    summary="User Logout",
+)
+def logout(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Validate the current user's authentication and acknowledge logout.
+    """
+    return {"message": "Successfully logged out"}

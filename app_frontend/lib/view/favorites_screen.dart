@@ -1,4 +1,5 @@
 import 'package:app_frontend/constant/color_const.dart';
+import 'package:app_frontend/view/profile_screen.dart';
 // import 'package:app_frontend/view/profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/book_model.dart';
@@ -135,9 +136,7 @@ class FavoritesScreen extends StatelessWidget {
           if (index == 0) {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => HomePage()
-              )
+              MaterialPageRoute(builder: (context) => HomePage()),
             );
           } else if (index == 1) {
             Navigator.push(
@@ -146,7 +145,10 @@ class FavoritesScreen extends StatelessWidget {
             );
           } else if (index == 2) {
           } else if (index == 3) {
-            
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
+            );
           }
         },
 

@@ -1,3 +1,4 @@
+import 'package:app_frontend/view/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'favorites_screen.dart';
@@ -176,9 +177,16 @@ class BookCategoriesPage extends StatelessWidget {
           } else if (index == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => FavoritesScreen(favoriteBook: [],)),
+              MaterialPageRoute(
+                builder: (context) => FavoritesScreen(favoriteBook: []),
+              ),
             );
-          } else if (index == 3) {}
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
+            );
+          }
         },
 
         items: [

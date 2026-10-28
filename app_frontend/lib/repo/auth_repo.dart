@@ -158,8 +158,23 @@ class AuthService {
   }
 
   /// Logs out the user
-  void logout() {
-    _token = null;
-    _currentUser = null;
+
+  /// Logs out the user through the backend API
+  Future<void> logout() async {
+    try {
+      final uri = Uri.parse('${ApiConstants.apiV1}/auth/logout');
+
+      final response = await http
+          .post(uri, headers: authHeaders)
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('Logout failed (HTTP ${response.statusCode})');
+      }
+    } finally {
+      // Clear the local session even if the API request fails.
+      _token = null;
+      _currentUser = null;
+    }
   }
 }
