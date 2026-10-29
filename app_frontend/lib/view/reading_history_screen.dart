@@ -662,7 +662,7 @@ class _ReadingHistoryScreenState extends State<ReadingHistoryScreen> {
                             icon:   Icon(Icons.delete_outline_rounded, size: 19),
                             color: Colors.grey.shade400,
                             padding: EdgeInsets.zero,
-                             raints:   BoxConstraints(),
+                             constraints:   BoxConstraints(),
                             tooltip: 'Remove from history',
                             onPressed: () => _deleteItem(item),
                           ),
