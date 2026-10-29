@@ -7,8 +7,13 @@ enum ReaderTheme { warm, light, dark }
 
 class BookReaderScreen extends StatefulWidget {
   final Book book;
+  final int? initialPage;
 
-  const BookReaderScreen({super.key, required this.book});
+  const BookReaderScreen({
+    super.key,
+    required this.book,
+    this.initialPage,
+  });
 
   @override
   State<BookReaderScreen> createState() => _BookReaderScreenState();
@@ -78,15 +83,19 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
       _errorMessage = null;
     });
 
-    try {
-      final savedProgress = await _repository.getReadingProgress(
-        widget.book.id,
-      );
-      if (savedProgress != null && savedProgress.currentPage > 1) {
-        _currentPage = savedProgress.currentPage;
+    if (widget.initialPage != null && widget.initialPage! >= 1) {
+      _currentPage = widget.initialPage!;
+    } else {
+      try {
+        final savedProgress = await _repository.getReadingProgress(
+          widget.book.id,
+        );
+        if (savedProgress != null && savedProgress.currentPage > 1) {
+          _currentPage = savedProgress.currentPage;
+        }
+      } catch (_) {
+        // Fallback to page 1
       }
-    } catch (_) {
-      // Fallback to page 1
     }
 
     await _loadPage(_currentPage);
@@ -121,11 +130,14 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
         _scrollController.jumpTo(0);
       }
 
-      // Persist progress asynchronously
+      // Persist progress asynchronously with book metadata
       _repository.saveReadingProgress(
         bookId: widget.book.id,
         page: _currentPage,
         totalPages: _totalPages,
+        title: widget.book.title,
+        author: widget.book.authorName,
+        coverUrl: widget.book.coverUrl,
       );
     } catch (e) {
       if (!mounted) return;

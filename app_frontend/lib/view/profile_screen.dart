@@ -1,8 +1,11 @@
 import 'package:app_frontend/view/book_categories_page.dart';
 import 'package:app_frontend/view/favorites_screen.dart';
 import 'package:app_frontend/view/home_page.dart';
+import 'package:app_frontend/view/reading_history_screen.dart';
 import 'package:flutter/material.dart';
+import '../models/book_model.dart';
 import '../repo/auth_repo.dart';
+import '../repo/book_repo.dart';
 import 'login_page.dart';
 import '../constant/color_const.dart';
 
@@ -14,13 +17,14 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final Color primaryColorr = Colors.white;
+  static const Color primaryColorrr = Color(0xFF6C63FF);
 
   final AuthService _authService = AuthService();
   bool _isloggingOut = false;
 
   late String userName;
   late String userEmail;
+  int _historyCount = 0;
 
   @override
   void initState() {
@@ -30,6 +34,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     userName = user?.fullName ?? 'Reader';
     userEmail = user?.email ?? '';
+    _loadHistoryCount();
+  }
+
+  Future<void> _loadHistoryCount() async {
+    if (_authService.isAuthenticated) {
+      try {
+        final items = await BookRepository().fetchReadingHistory();
+        if (mounted) {
+          setState(() {
+            _historyCount = items.length;
+          });
+        }
+      } catch (_) {}
+    }
   }
 
   void _showMessage(String message) {
@@ -74,7 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColorr,
+                backgroundColor: primaryColorrr,
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
@@ -90,7 +108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 Navigator.pop(dialogContext);
               },
-              child: Text("Save", style: TextStyle(color: Colors.black),),
+              child: Text("Save", style: TextStyle(color: Colors.black)),
             ),
           ],
         );
@@ -113,16 +131,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: ListTile(
         leading: Container(
-          padding: EdgeInsets.all(10),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: primaryColorr,
+            color: primaryColorrr.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon,),
+          child: Icon(icon, color: primaryColorrr),
         ),
         title: Text(
           title,
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
         subtitle: subtitle == null ? null : Text(subtitle),
         trailing: Icon(
@@ -180,11 +198,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Color(0xFFF7F6FC),
 
       appBar: AppBar(
-        backgroundColor: primaryColorr,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF24213A),
         elevation: 0,
         centerTitle: true,
-        title: Text(
+        title: const Text(
           'My Profile',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
@@ -207,13 +225,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   CircleAvatar(
                     radius: 48,
-                    backgroundColor: primaryColorr,
-                    child: Icon(
+                    backgroundColor: primaryColorrr.withValues(alpha: 0.12),
+                    child: const Icon(
                       Icons.person_rounded,
                       size: 58,
+                      color: primaryColorrr,
                     ),
                   ),
-                  SizedBox(height: 14),
+                  const SizedBox(height: 14),
                   Text(
                     userName,
                     style: const TextStyle(
@@ -228,20 +247,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     userEmail,
                     style: const TextStyle(color: Colors.grey, fontSize: 14),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: _editProfile,
-                    icon: Icon(Icons.edit_outlined),
-                    label: Text('Edit Profile'),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit Profile'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColorr,
-                      foregroundColor: Colors.black,
-                      padding: EdgeInsets.symmetric(
+                      backgroundColor: primaryColorrr,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 22,
                         vertical: 12,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadiusGeometry.circular(12),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
@@ -264,9 +283,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildMenuItem(
               icon: Icons.menu_book_rounded,
               title: 'Reading History',
-              subtitle: 'Continue reading your books',
+              subtitle: _historyCount > 0
+                  ? '$_historyCount books in your journey'
+                  : 'Continue reading your books',
               onTap: () {
-                _showMessage('Reading history will be available soon.');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReadingHistoryScreen(),
+                  ),
+                ).then((_) => _loadHistoryCount());
+              },
+            ),
+
+            _buildMenuItem(
+              icon: Icons.favorite_rounded,
+              title: 'Favorites',
+              subtitle: 'Books you loved',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const FavoritesScreen(favoriteBook: []),
+                  ),
+                );
               },
             ),
 

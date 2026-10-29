@@ -1,13 +1,16 @@
 import 'package:app_frontend/view/profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/book_model.dart';
+import '../models/reading_models.dart';
 import '../repo/book_repo.dart';
 import 'book_categories_page.dart';
 import 'book_detail_screen.dart';
+import 'book_read_screen.dart';
 import 'login_page.dart';
 import '../constant/color_const.dart';
 import '../repo/auth_repo.dart';
 import 'favorites_screen.dart';
+import 'reading_history_screen.dart';
 
 class HomePage extends StatefulWidget {
   final String? initialCategory;
@@ -28,6 +31,30 @@ class _HomePageState extends State<HomePage> {
   late Future<List<Book>> _booksFuture;
   String _query = '';
   int _currentIndex = 0;
+  List<ReadingHistoryItem> _readingHistory = [];
+
+  bool _isFavorite(Book book) {
+    return favoriteBooks.any((item) => item.id == book.id);
+  }
+
+  void _toggleFavorite(Book book) {
+    setState(() {
+      if (_isFavorite(book)) {
+        favoriteBooks.removeWhere((item) => item.id == book.id);
+      } else {
+        favoriteBooks.add(book);
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isFavorite(book) ? 'Added to Favorites' : 'Removed from Favorites',
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -40,6 +67,26 @@ class _HomePageState extends State<HomePage> {
     } else {
       _booksFuture = _repository.fetchBooks();
     }
+    _loadRecentHistory();
+  }
+
+  Future<void> _loadRecentHistory() async {
+    if (!AuthService().isAuthenticated) {
+      if (mounted && _readingHistory.isNotEmpty) {
+        setState(() {
+          _readingHistory = [];
+        });
+      }
+      return;
+    }
+    try {
+      final items = await _repository.fetchReadingHistory();
+      if (mounted) {
+        setState(() {
+          _readingHistory = items;
+        });
+      }
+    } catch (_) {}
   }
 
   void _searchBooks(String value) {
@@ -53,6 +100,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _booksFuture = _repository.fetchBooks(query: _query);
     });
+    _loadRecentHistory();
   }
 
   Future<void> _openCategories() async {
@@ -232,8 +280,8 @@ class _HomePageState extends State<HomePage> {
 
                     // Welcome text
                     Text(
-                      'Hello, Reader! ',
-                      style: TextStyle(
+                      'Hello, ${AuthService().currentUser?.fullName ?? 'Reader'}! ',
+                      style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
                       ),
@@ -333,6 +381,187 @@ class _HomePageState extends State<HomePage> {
                     ),
 
                     SizedBox(height: 28),
+
+                    // Continue Reading Section (as per authenticated user)
+                    if (_readingHistory.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.history_rounded,
+                                color: primaryColor,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Continue Reading',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF24213A),
+                                ),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ReadingHistoryScreen(),
+                                ),
+                              ).then((_) => _loadRecentHistory());
+                            },
+                            child: const Text('See All'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 135,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _readingHistory.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final item = _readingHistory[index];
+                            final progress = item.progressFraction;
+                            final percentInt = (progress * 100).round();
+
+                            return Container(
+                              width: 270,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: InkWell(
+                                onTap: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => BookReaderScreen(
+                                        book: item.toBook(),
+                                        initialPage: item.currentPage,
+                                      ),
+                                    ),
+                                  );
+                                  _loadRecentHistory();
+                                },
+                                borderRadius: BorderRadius.circular(16),
+                                child: Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: SizedBox(
+                                        width: 65,
+                                        height: 95,
+                                        child:
+                                            item.coverUrl != null &&
+                                                item.coverUrl!.isNotEmpty
+                                            ? Image.network(
+                                                item.coverUrl!,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) => _coverPlaceholer(),
+                                              )
+                                            : _coverPlaceholer(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            item.title,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                              color: Color(0xFF24213A),
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            item.displayAuthor,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                item.pageProgressText,
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                              Text(
+                                                '$percentInt%',
+                                                style: const TextStyle(
+                                                  color: primaryColor,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            child: LinearProgressIndicator(
+                                              value: progress,
+                                              minHeight: 5,
+                                              backgroundColor: const Color(
+                                                0xFFECEBFA,
+                                              ),
+                                              valueColor:
+                                                  const AlwaysStoppedAnimation<
+                                                    Color
+                                                  >(primaryColor),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                    ],
 
                     // Books heading
                     Row(
@@ -463,46 +692,65 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Cover image
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child:
-                                        book.coverUrl != null &&
-                                            book.coverUrl!.startsWith(
-                                              'https://',
-                                            )
-                                        ? Image.network(
-                                            book.coverUrl!,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            webHtmlElementStrategy:
-                                                WebHtmlElementStrategy.prefer,
-                                            loadingBuilder:
-                                                (context, child, progress) {
-                                                  if (progress == null) {
-                                                    return child;
-                                                  }
 
-                                                  return Center(
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color: primaryColor,
-                                                        ),
-                                                  );
-                                                },
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                                  debugPrint(
-                                                    'Cover error: $error',
-                                                  );
-                                                  return _coverPlaceholer();
-                                                },
-                                          )
-                                        : _coverPlaceholer(),
-                                  ),
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child:
+                                            (book.coverUrl != null &&
+                                                book.coverUrl!
+                                                    .trim()
+                                                    .isNotEmpty)
+                                            ? Image.network(
+                                                book.coverUrl!,
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                                fit: BoxFit.cover,
+                                                webHtmlElementStrategy:
+                                                    WebHtmlElementStrategy
+                                                        .prefer,
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) {
+                                                      debugPrint(
+                                                        'Cover failed: ${book.coverUrl} - $error',
+                                                      );
+                                                      return _coverPlaceholder();
+                                                    },
+                                              )
+                                            : _coverPlaceholder(),
+                                      ),
+                                    ),
+
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: Material(
+                                        color: Colors.white,
+                                        shape: const CircleBorder(),
+                                        child: IconButton(
+                                          tooltip: 'Add or remove favorite',
+                                          visualDensity: VisualDensity.compact,
+                                          icon: Icon(
+                                            _isFavorite(book)
+                                                ? Icons.favorite
+                                                : Icons.favorite_border,
+                                            color: _isFavorite(book)
+                                                ? Colors.red
+                                                : Colors.grey,
+                                          ),
+                                          onPressed: () =>
+                                              _toggleFavorite(book),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
 
@@ -610,24 +858,13 @@ class _HomePageState extends State<HomePage> {
             // Categories
             _openCategories();
           } else if (index == 2) {
-            // Favorites
-            if (!AuthService().isAuthenticated) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Please log in to view and sync your favorites!',
-                  ),
-                ),
-              );
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      FavoritesScreen(favoriteBook: favoriteBooks),
-                ),
-              );
-            }
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    FavoritesScreen(favoriteBook: favoriteBooks),
+              ),
+            );
           } else if (index == 3) {
             Navigator.push(
               context,
@@ -654,6 +891,15 @@ class _HomePageState extends State<HomePage> {
             label: 'Profile',
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _coverPlaceholder() {
+    return Container(
+      color: const Color(0xFFECEBFA),
+      child: const Center(
+        child: Icon(Icons.menu_book_rounded, size: 32, color: primaryColor),
       ),
     );
   }

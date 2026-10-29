@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/book_model.dart';
+import '../models/reading_models.dart';
 import '../repo/auth_repo.dart';
 import '../repo/book_repo.dart';
 import 'book_read_screen.dart';
@@ -20,11 +21,24 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   static const Color primaryColor = Color(0xFF5B4BDB);
 
   bool isFavorite = false;
+  BookProgress? _savedProgress;
 
   @override
   void initState() {
     super.initState();
     isFavorite = widget.book.isFavorite;
+    _checkReadingProgress();
+  }
+
+  Future<void> _checkReadingProgress() async {
+    try {
+      final prog = await BookRepository().getReadingProgress(widget.book.id);
+      if (mounted) {
+        setState(() {
+          _savedProgress = prog;
+        });
+      }
+    } catch (_) {}
   }
 
   String get authorName {
@@ -255,25 +269,82 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 30),
 
+            if (_savedProgress != null && _savedProgress!.currentPage > 1) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: primaryColor.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.history_edu_rounded, color: primaryColor, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Reading Progress',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: primaryColor,
+                                ),
+                              ),
+                              Text(
+                                '${_savedProgress!.percentage.toStringAsFixed(0)}%',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Saved at Page ${_savedProgress!.currentPage} of ${_savedProgress!.totalPages}',
+                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Read book button
             SizedBox(
               width: double.infinity,
               height: 54,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => BookReaderScreen(
                         book: book,
+                        initialPage: _savedProgress?.currentPage,
                       ),
                     ),
                   );
+                  _checkReadingProgress();
                 },
                 icon: const Icon(Icons.menu_book),
-                label: const Text(
-                  'Read Book',
-                  style: TextStyle(
+                label: Text(
+                  _savedProgress != null && _savedProgress!.currentPage > 1
+                      ? 'Continue Reading (Page ${_savedProgress!.currentPage})'
+                      : 'Read Book',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),

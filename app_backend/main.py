@@ -100,6 +100,43 @@ def seed_initial_data():
                     local_b.title = g_book.title
                     local_b.author_name = g_book.author_name
                     db.commit()
+
+        # Synchronize legacy progress into reading_history
+        from datetime import datetime, timezone
+        from models.reading_history import ReadingHistory
+        from models.reading_progress import ReadingProgress
+
+        user_progresses = (
+            db.query(ReadingProgress)
+            .filter(ReadingProgress.user_id.isnot(None))
+            .all()
+        )
+        for rp in user_progresses:
+            existing_hist = (
+                db.query(ReadingHistory)
+                .filter_by(user_id=rp.user_id, book_id=rp.book_id)
+                .first()
+            )
+            if not existing_hist:
+                b_match = db.query(Book).filter(Book.id == rp.book_id).first()
+                title_val = b_match.title if b_match else f"Book #{rp.book_id}"
+                author_val = b_match.author_name if b_match else "Unknown Author"
+                cover_val = b_match.cover_url if b_match else None
+                now_ts = rp.updated_at or datetime.now(timezone.utc)
+                new_hist = ReadingHistory(
+                    user_id=rp.user_id,
+                    book_id=rp.book_id,
+                    title=title_val,
+                    author=author_val,
+                    cover_url=cover_val,
+                    current_page=rp.current_page,
+                    total_pages=rp.total_pages,
+                    progress_percent=round(rp.percentage),
+                    created_at=now_ts,
+                    last_read_at=now_ts,
+                )
+                db.add(new_hist)
+        db.commit()
     except Exception as e:
         db.rollback()
     finally:

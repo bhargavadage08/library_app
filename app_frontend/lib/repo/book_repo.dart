@@ -484,11 +484,14 @@ class BookRepository {
     return null;
   }
 
-  /// Persists reading progress to backend PostgreSQL
+  /// Persists reading progress to backend PostgreSQL and reading_history
   Future<void> saveReadingProgress({
     required int bookId,
     required int page,
     required int totalPages,
+    String? title,
+    String? author,
+    String? coverUrl,
   }) async {
     final uri = Uri.parse('${ApiConstants.apiV1}/books/$bookId/progress');
     try {
@@ -499,12 +502,61 @@ class BookRepository {
             body: jsonEncode({
               'current_page': page,
               'total_pages': totalPages,
+              if (title != null && title.isNotEmpty) 'title': title,
+              if (author != null && author.isNotEmpty) 'author': author,
+              if (coverUrl != null && coverUrl.isNotEmpty) 'cover_url': coverUrl,
             }),
           )
           .timeout(const Duration(seconds: 10));
     } catch (_) {
       // Progress saving operates in background, non-blocking
     }
+  }
+
+  /// Fetches the authenticated user's reading history
+  Future<List<ReadingHistoryItem>> fetchReadingHistory() async {
+    final token = AuthService().token;
+    if (token == null || token.isEmpty) {
+      return [];
+    }
+
+    final uri = Uri.parse('${ApiConstants.apiV1}/reading-history');
+    final response = await http
+        .get(uri, headers: AuthService().authHeaders)
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is List) {
+        return decoded
+            .map<ReadingHistoryItem>((item) =>
+                ReadingHistoryItem.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } else if (response.statusCode == 401) {
+      throw Exception('Session expired. Please log in again.');
+    } else {
+      throw Exception('Failed to load reading history (HTTP ${response.statusCode}).');
+    }
+  }
+
+  /// Deletes a specific book from the user's reading history
+  Future<bool> deleteReadingHistoryItem(int bookId) async {
+    final uri = Uri.parse('${ApiConstants.apiV1}/reading-history/$bookId');
+    final response = await http
+        .delete(uri, headers: AuthService().authHeaders)
+        .timeout(const Duration(seconds: 10));
+    return response.statusCode == 204 || response.statusCode == 200;
+  }
+
+  /// Clears all reading history for the current user
+  Future<bool> clearReadingHistory() async {
+    final uri = Uri.parse('${ApiConstants.apiV1}/reading-history');
+    final response = await http
+        .delete(uri, headers: AuthService().authHeaders)
+        .timeout(const Duration(seconds: 10));
+    return response.statusCode == 204 || response.statusCode == 200;
   }
 
   /// Toggles favorite status on backend

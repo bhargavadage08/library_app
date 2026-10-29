@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field   
 
 
 class BookBase(BaseModel):
@@ -78,8 +78,11 @@ class BookPageResponse(BaseModel):
 
 
 class ReadingProgressUpdate(BaseModel):
-    current_page: int
-    total_pages: int
+    current_page: int = Field(default=1, ge=1)
+    total_pages: Optional[int] = Field(default=1, ge=1)
+    title: Optional[str] = None
+    author: Optional[str] = None
+    cover_url: Optional[str] = None
 
 
 class ReadingProgressResponse(BaseModel):
@@ -88,5 +91,22 @@ class ReadingProgressResponse(BaseModel):
     total_pages: int
     percentage: float
     updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+class ReadingHistoryResponse(BaseModel):
+    id: int
+    user_id: int
+    book_id: int
+    title: str
+    author: Optional[str] = None
+    cover_url: Optional[str] = None
+    current_page: int
+    total_pages: Optional[int] = None
+    progress_percent: int
+    created_at: datetime
+    last_read_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

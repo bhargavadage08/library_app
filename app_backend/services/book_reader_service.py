@@ -1,9 +1,11 @@
+from datetime import datetime, timezone
 import logging
 from typing import Dict, List, Optional, Tuple
 import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from models.book import Book
+from models.reading_history import ReadingHistory
 from models.reading_progress import ReadingProgress
 from schemas.book import (
     BookContentResponse,
@@ -351,7 +353,7 @@ class BookReaderService:
         Persists updated reading progress for the authenticated user or device.
         """
         current_page = max(1, progress_in.current_page)
-        total_pages = max(1, progress_in.total_pages)
+        total_pages = max(1, progress_in.total_pages or 1)
         percentage = round((current_page / total_pages) * 100, 1)
         if percentage > 100.0:
             percentage = 100.0
@@ -392,6 +394,51 @@ class BookReaderService:
             )
             db.add(progress)
 
+        # Synchronize with ReadingHistory for authenticated users
+        if user_id:
+            now = datetime.now(timezone.utc)
+            history_record = (
+                db.query(ReadingHistory)
+                .filter_by(user_id=user_id, book_id=book_id)
+                .first()
+            )
+            book_obj = db.query(Book).filter(Book.id == book_id).first()
+            title = progress_in.title or (book_obj.title if book_obj else f"Book #{book_id}")
+            author = progress_in.author or (book_obj.author_name if book_obj else "Unknown Author")
+            cover_url = progress_in.cover_url or (book_obj.cover_url if book_obj else None)
+
+            if history_record is None:
+                history_record = ReadingHistory(
+                    user_id=user_id,
+                    book_id=book_id,
+                    title=title,
+                    author=author,
+                    cover_url=cover_url,
+                    current_page=current_page,
+                    total_pages=total_pages,
+                    progress_percent=round(percentage),
+                    created_at=now,
+                    last_read_at=now,
+                )
+                db.add(history_record)
+            else:
+                if progress_in.title:
+                    history_record.title = progress_in.title
+                elif not history_record.title and title:
+                    history_record.title = title
+                if progress_in.author:
+                    history_record.author = progress_in.author
+                elif not history_record.author and author:
+                    history_record.author = author
+                if progress_in.cover_url:
+                    history_record.cover_url = progress_in.cover_url
+                elif not history_record.cover_url and cover_url:
+                    history_record.cover_url = cover_url
+                history_record.current_page = current_page
+                history_record.total_pages = total_pages
+                history_record.progress_percent = round(percentage)
+                history_record.last_read_at = now
+
         db.commit()
         db.refresh(progress)
 
@@ -402,3 +449,4 @@ class BookReaderService:
             percentage=progress.percentage,
             updated_at=progress.updated_at,
         )
+
