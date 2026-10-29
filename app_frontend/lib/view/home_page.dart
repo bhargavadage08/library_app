@@ -6,7 +6,6 @@ import '../repo/book_repo.dart';
 import 'book_categories_page.dart';
 import 'book_detail_screen.dart';
 import 'book_read_screen.dart';
-import 'login_page.dart';
 import '../constant/color_const.dart';
 import '../repo/auth_repo.dart';
 import 'favorites_screen.dart';
@@ -124,83 +123,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showProfileDialog() {
-    final user = AuthService().currentUser;
-    final isLoggedIn = AuthService().isAuthenticated;
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.person_rounded, color: primaryColor),
-              SizedBox(width: 10),
-              Text('User Profile'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                user?.fullName ?? 'Guest Reader',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 6),
-              Text(
-                user?.email ?? 'Not logged in (Guest)',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Close'),
-            ),
-            if (isLoggedIn)
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  AuthService().logout();
-                  Navigator.pop(dialogContext);
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => LoginPage()),
-                  );
-                },
-                icon: Icon(Icons.logout, size: 18),
-                label: Text('Log Out'),
-              )
-            else
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => LoginPage()),
-                  );
-                },
-                icon: Icon(Icons.login, size: 18),
-                label: Text('Log In'),
-              ),
-          ],
-        );
-      },
-    );
-  }
 
   // Navigate to book details screen
   void _showBookDetails(Book book) {

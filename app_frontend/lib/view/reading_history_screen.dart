@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../constant/color_const.dart';
 import '../models/reading_models.dart';
 import '../repo/auth_repo.dart';
 import '../repo/book_repo.dart';

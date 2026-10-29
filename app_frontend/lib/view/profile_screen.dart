@@ -3,7 +3,6 @@ import 'package:app_frontend/view/favorites_screen.dart';
 import 'package:app_frontend/view/home_page.dart';
 import 'package:app_frontend/view/reading_history_screen.dart';
 import 'package:flutter/material.dart';
-import '../models/book_model.dart';
 import '../repo/auth_repo.dart';
 import '../repo/book_repo.dart';
 import 'login_page.dart';
