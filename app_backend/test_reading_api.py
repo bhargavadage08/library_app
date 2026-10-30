@@ -1,9 +1,17 @@
 """
 Comprehensive automated tests for the Book Reading & Pagination Backend
 """
+import os
 import sys
+
+# Ensure app directory is accessible
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"))
+
 from fastapi.testclient import TestClient
-from main import app
+try:
+    from app.main import app
+except ImportError:
+    from main import app
 
 def run_tests():
     print("=" * 60)

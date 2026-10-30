@@ -1,9 +1,17 @@
+import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
+_BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_APP_DIR = os.path.join(_BACKEND_DIR, "app")
+for _p in (_APP_DIR, _BACKEND_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from core.database import Base
 

@@ -80,11 +80,19 @@ copy .env.example .env
 
 ### 4. Run the Development Server
 
+Execute the entry point `app/main.py` directly:
+
 ```powershell
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+python app/main.py
 ```
 
-The server will automatically start on `http://127.0.0.1:8000`. Database tables and initial sample books are seeded automatically on first startup.
+Or run via Uvicorn:
+
+```powershell
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The server will automatically start on `http://127.0.0.1:8000` (or `http://0.0.0.0:8000`). Database tables and initial sample books are seeded automatically on first startup.
 
 ---
 
