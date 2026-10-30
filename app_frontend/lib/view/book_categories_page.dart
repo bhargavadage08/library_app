@@ -18,11 +18,6 @@ class BookCategoriesPage extends StatelessWidget {
     },
     {'name': 'Biography', 'icon': Icons.person, 'color': Color(0xFF00ACC1)},
     {'name': 'Education', 'icon': Icons.school, 'color': Color(0xFF795548)},
-    {
-      'name': 'Romance',
-      'icon': Icons.manage_search,
-      'color': Color(0xFF4CAF50),
-    },
     {'name': 'Fantasy', 'icon': Icons.auto_awesome, 'color': Color(0xFF9C27B0)},
     {'name': 'Adventure', 'icon': Icons.explore, 'color': Color(0xFFFF5722)},
   ];

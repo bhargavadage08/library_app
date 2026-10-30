@@ -27,6 +27,8 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   final List<Book> favoriteBooks = [];
 
+  String? _selectedCategory;
+
   late Future<List<Book>> _booksFuture;
   String _query = '';
   int _currentIndex = 0;
@@ -58,15 +60,27 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
     if (widget.initialCategory != null &&
         widget.initialCategory!.trim().isNotEmpty) {
-      _query = widget.initialCategory!.trim();
-      _searchController.text = _query;
-      _booksFuture = _repository.fetchBooks(query: _query);
+      _selectedCategory = widget.initialCategory!.trim();
+      _searchController.text = _selectedCategory!;
+      _booksFuture = _repository.fetchBooks(category: _selectedCategory);
     } else {
       _booksFuture = _repository.fetchBooks();
     }
+
     _loadRecentHistory();
+  }
+
+  void _filterBooksByCategory(String category) {
+    setState(() {
+      _selectedCategory = category;
+      _query = '';
+      _searchController.text = category;
+
+      _booksFuture = _repository.fetchBooks(category: category);
+    });
   }
 
   Future<void> _loadRecentHistory() async {
@@ -90,15 +104,24 @@ class _HomePageState extends State<HomePage> {
 
   void _searchBooks(String value) {
     setState(() {
+      _selectedCategory = null;
       _query = value.trim();
+
+      _searchController.text = _query;
+
       _booksFuture = _repository.fetchBooks(query: _query);
     });
   }
 
   void _reloadBooks() {
     setState(() {
-      _booksFuture = _repository.fetchBooks(query: _query);
+      if (_selectedCategory != null) {
+        _booksFuture = _repository.fetchBooks(category: _selectedCategory);
+      } else {
+        _booksFuture = _repository.fetchBooks(query: _query);
+      }
     });
+
     _loadRecentHistory();
   }
 
@@ -108,8 +131,7 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(builder: (_) => const BookCategoriesPage()),
     );
     if (selectedCategory != null && selectedCategory.trim().isNotEmpty) {
-      _searchBooks(selectedCategory.trim());
-      _searchController.text = selectedCategory.trim();
+      _filterBooksByCategory(selectedCategory.trim());
     }
   }
 
@@ -122,7 +144,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
 
   // Navigate to book details screen
   void _showBookDetails(Book book) {
@@ -490,7 +511,11 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Expanded(
                           child: Text(
-                            _query.isEmpty ? 'Popular Books' : 'Search Results',
+                            _selectedCategory != null
+                                ? '${_selectedCategory!} Books'
+                                : _query.isEmpty
+                                ? 'Popular Books'
+                                : 'Search Results',
                             style: TextStyle(
                               fontSize: 21,
                               fontWeight: FontWeight.bold,
