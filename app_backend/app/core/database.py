@@ -9,6 +9,8 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL") or settings.DATABASE_URL
 if DATABASE_URL:
     DATABASE_URL = DATABASE_URL.strip().strip('"').strip("'")
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 connect_args = {}
 if DATABASE_URL and DATABASE_URL.startswith("sqlite"):
