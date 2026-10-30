@@ -18,8 +18,6 @@ from routes import api_router
 
 def seed_initial_data():
     """Seed initial sample books with authentic Gutenberg content and IDs."""
-    from services.book_reader_service import BookReaderService
-
     db = SessionLocal()
     try:
         sample_catalog = [
@@ -70,19 +68,10 @@ def seed_initial_data():
             },
         ]
 
-        # Ensure books with authentic Gutenberg IDs exist
+        # Ensure books with authentic Gutenberg IDs exist without blocking startup with large HTTP downloads
         for item in sample_catalog:
             existing = db.query(Book).filter(Book.id == item["id"]).first()
             if not existing:
-                try:
-                    content, _, _, _ = BookReaderService.get_book_readable_content(
-                        db=db,
-                        book_id=item["id"],
-                        fallback_title=item["title"],
-                        fallback_author=item["author_name"],
-                    )
-                except Exception:
-                    content = None
                 new_book = Book(
                     id=item["id"],
                     title=item["title"],
@@ -90,7 +79,7 @@ def seed_initial_data():
                     category=item["category"],
                     cover_url=item["cover_url"],
                     description=item["description"],
-                    content=content,
+                    content=None,
                     download_count=item["download_count"],
                 )
                 db.add(new_book)
@@ -145,6 +134,7 @@ def seed_initial_data():
                 db.add(new_hist)
         db.commit()
     except Exception as e:
+        print(f"[Startup Warning] Seeding initial data error: {e}", flush=True)
         db.rollback()
     finally:
         db.close()
@@ -152,9 +142,16 @@ def seed_initial_data():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: initialize database tables and seed initial data
-    Base.metadata.create_all(bind=engine)
-    seed_initial_data()
+    # Startup: initialize database tables and seed initial data safely
+    try:
+        print("[Startup] Initializing database tables...", flush=True)
+        Base.metadata.create_all(bind=engine)
+        print("[Startup] Database tables initialized successfully.", flush=True)
+        seed_initial_data()
+        print("[Startup] Initial sample catalog verified.", flush=True)
+    except Exception as exc:
+        print(f"\n[Startup Warning] Database connection/initialization error: {exc}", flush=True)
+        print("[Startup Warning] Check your DATABASE_URL in Render environment variables.\n", flush=True)
     yield
     # Shutdown logic (if any)
 
@@ -208,4 +205,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, app_dir=_CURRENT_DIR)
-
