@@ -194,10 +194,17 @@ def root():
 @app.get("/health", tags=["Health & Status"])
 def health_check():
     """Health check endpoint."""
+    backend_name = engine.url.get_backend_name()
+    host_name = engine.url.host or "local"
     return {
         "status": "healthy",
         "project": settings.PROJECT_NAME,
         "version": settings.VERSION,
+        "database": {
+            "type": backend_name,
+            "host": host_name,
+            "connected": True,
+        },
     }
 
 
