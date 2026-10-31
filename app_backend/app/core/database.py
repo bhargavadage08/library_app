@@ -10,7 +10,9 @@ DATABASE_URL = os.getenv("DATABASE_URL") or settings.DATABASE_URL
 if DATABASE_URL:
     DATABASE_URL = DATABASE_URL.strip().strip('"').strip("'")
     if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 # Check if running on Render and DATABASE_URL is pointing to unreachable localhost
 is_render = bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID") or os.getenv("PORT"))
