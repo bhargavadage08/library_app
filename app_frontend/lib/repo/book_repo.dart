@@ -6,56 +6,170 @@ import '../models/reading_models.dart';
 import 'auth_repo.dart';
 
 class BookRepository {
-  static const String gutendexBaseUrl = 'https://gutendex.com/books/';
+  static const String gutendexBaseUrl = ApiConstants.gutendexBaseUrl;
+
+  // Optional custom API Key for the Book API
+  static String? apiKey;
 
   static final List<Book> _allCachedBooks = [];
 
-  /// Fetches all books from your FastAPI backend (/api/v1/books),
-  /// with automatic fallback to curated classics if offline or slow.
+  /// Helper to build headers with User-Agent and optional API key
+  static Map<String, String> _buildApiHeaders() {
+    final effectiveKey = apiKey ?? ApiConstants.apiKey;
+    return {
+      'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 BookHaven/1.0',
+      'Accept': 'application/json, text/plain, */*',
+      if (effectiveKey.isNotEmpty) 'Authorization': 'Bearer $effectiveKey',
+      if (effectiveKey.isNotEmpty) 'X-Api-Key': effectiveKey,
+    };
+  }
+
+  /// Fetches books directly from the online Book API (Gutendex / Project Gutenberg)
+  /// with full API key support and robust error handling to resolve 503 errors.
   Future<List<Book>> fetchBooks({String query = '', String? category}) async {
     final cleanQuery = query.trim();
     final cleanCategory = category?.trim();
+    final effectiveKey = apiKey ?? ApiConstants.apiKey;
 
-    // 1. Fetch from FastAPI Backend
-    try {
-      final queryParams = <String, String>{};
-      if (cleanQuery.isNotEmpty) queryParams['query'] = cleanQuery;
-      if (cleanCategory != null && cleanCategory.isNotEmpty) {
-        queryParams['category'] = cleanCategory;
+    // 1. If searching or filtering by category, query the live Book API
+    if (cleanQuery.isNotEmpty || (cleanCategory != null && cleanCategory.isNotEmpty)) {
+      try {
+        final uri = Uri.parse(gutendexBaseUrl).replace(
+          queryParameters: {
+            'languages': 'en',
+            if (cleanQuery.isNotEmpty) 'search': cleanQuery,
+            if (cleanCategory != null && cleanCategory.isNotEmpty) 'topic': cleanCategory,
+            if (effectiveKey.isNotEmpty) 'key': effectiveKey,
+          },
+        );
+
+        final resp = await http
+            .get(uri, headers: _buildApiHeaders())
+            .timeout(const Duration(seconds: 12));
+
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+          final results = data['results'] as List? ?? [];
+          final books = results
+              .map((item) => Book.fromJson(Map<String, dynamic>.from(item as Map)))
+              .toList();
+
+          if (books.isNotEmpty) {
+            for (final b in books) {
+              final idx = _allCachedBooks.indexWhere((c) => c.id == b.id);
+              if (idx >= 0) {
+                _allCachedBooks[idx] = b;
+              } else {
+                _allCachedBooks.add(b);
+              }
+            }
+            return books;
+          }
+        }
+      } catch (_) {
+        // Query request timed out or returned 503, continue to fallbacks below
       }
+    }
 
-      final uri = Uri.parse('${ApiConstants.apiV1}/books').replace(
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    // 2. Fetch books from the live Book API (sequential requests to avoid Cloudflare 503 burst limits)
+    final List<Book> fetchedBooks = [];
+    final Set<int> seenIds = {};
+
+    try {
+      // Fetch Page 1 first (contains 32 books without triggering rate limits)
+      final page1Uri = Uri.parse(gutendexBaseUrl).replace(
+        queryParameters: {
+          'languages': 'en',
+          'page': '1',
+          if (effectiveKey.isNotEmpty) 'key': effectiveKey,
+        },
       );
 
-      final resp = await http
-          .get(uri, headers: AuthService().authHeaders)
-          .timeout(const Duration(seconds: 10));
+      final resp1 = await http
+          .get(page1Uri, headers: _buildApiHeaders())
+          .timeout(const Duration(seconds: 12));
 
-      if (resp.statusCode == 200) {
-        final List<dynamic> listData =
-            jsonDecode(utf8.decode(resp.bodyBytes)) as List<dynamic>;
-        final books = listData
-            .map((item) => Book.fromJson(Map<String, dynamic>.from(item as Map)))
-            .toList();
+      if (resp1.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(resp1.bodyBytes)) as Map<String, dynamic>;
+        final results = data['results'] as List? ?? [];
+        for (final item in results) {
+          final b = Book.fromJson(Map<String, dynamic>.from(item as Map));
+          if (!seenIds.contains(b.id)) {
+            seenIds.add(b.id);
+            fetchedBooks.add(b);
+          }
+        }
 
-        if (books.isNotEmpty) {
-          for (final b in books) {
-            final idx = _allCachedBooks.indexWhere((c) => c.id == b.id);
-            if (idx >= 0) {
-              _allCachedBooks[idx] = b;
-            } else {
-              _allCachedBooks.add(b);
+        // Fetch Page 2 sequentially (smoothly handling any 503 response)
+        try {
+          final page2Uri = Uri.parse(gutendexBaseUrl).replace(
+            queryParameters: {
+              'languages': 'en',
+              'page': '2',
+              if (effectiveKey.isNotEmpty) 'key': effectiveKey,
+            },
+          );
+          final resp2 = await http
+              .get(page2Uri, headers: _buildApiHeaders())
+              .timeout(const Duration(seconds: 8));
+
+          if (resp2.statusCode == 200) {
+            final data2 = jsonDecode(utf8.decode(resp2.bodyBytes)) as Map<String, dynamic>;
+            final results2 = data2['results'] as List? ?? [];
+            for (final item in results2) {
+              final b = Book.fromJson(Map<String, dynamic>.from(item as Map));
+              if (!seenIds.contains(b.id)) {
+                seenIds.add(b.id);
+                fetchedBooks.add(b);
+              }
             }
           }
-          return books;
+        } catch (_) {
+          // If page 2 has a 503/timeout, we still have all page 1 books safely!
         }
       }
     } catch (_) {
-      // Backend temporarily waking up or unreachable, smoothly continue to fallback
+      // Live API temporarily down (503), smoothly continue to fallbacks
     }
 
-    // 2. Filter in-memory cached books if available
+    if (fetchedBooks.isNotEmpty) {
+      _allCachedBooks.clear();
+      _allCachedBooks.addAll(fetchedBooks);
+      return fetchedBooks;
+    }
+
+    // 3. Fallback: Query deployed FastAPI backend
+    try {
+      final backendUri = Uri.parse('${ApiConstants.apiV1}/books').replace(
+        queryParameters: {
+          if (cleanQuery.isNotEmpty) 'query': cleanQuery,
+          if (cleanCategory != null && cleanCategory.isNotEmpty) 'category': cleanCategory,
+        },
+      );
+
+      final resp = await http
+          .get(backendUri, headers: AuthService().authHeaders)
+          .timeout(const Duration(seconds: 6));
+
+      if (resp.statusCode == 200) {
+        final List<dynamic> listData = jsonDecode(utf8.decode(resp.bodyBytes));
+        final backendBooks = listData
+            .map((item) => Book.fromJson(Map<String, dynamic>.from(item as Map)))
+            .toList();
+
+        if (backendBooks.isNotEmpty) {
+          for (final b in backendBooks) {
+            if (!_allCachedBooks.any((c) => c.id == b.id)) {
+              _allCachedBooks.add(b);
+            }
+          }
+          return backendBooks;
+        }
+      }
+    } catch (_) {}
+
+    // 4. In-memory cached books
     if (_allCachedBooks.isNotEmpty) {
       final qLower = cleanQuery.toLowerCase();
       final cLower = cleanCategory?.toLowerCase();
@@ -71,7 +185,7 @@ class BookRepository {
       if (filtered.isNotEmpty) return filtered;
     }
 
-    // 3. Fallback: curated classics
+    // 5. Curated classics fallback
     final curated = _getCuratedFallbackBooks();
     for (final b in curated) {
       if (!_allCachedBooks.any((c) => c.id == b.id)) {

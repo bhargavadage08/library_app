@@ -4,6 +4,20 @@ class ApiConstants {
   // Production deployed backend URL on Render
   static const String productionBaseUrl = 'https://library-app-welh.onrender.com';
 
+  // Live Gutendex / External Book API
+  static const String gutendexBaseUrl = 'https://gutendex.com/books/';
+
+  // Book API Key (Can be passed via --dart-define=BOOK_API_KEY=your_key or set in app)
+  static const String envBookApiKey = String.fromEnvironment('BOOK_API_KEY', defaultValue: '');
+  static String? customBookApiKey;
+
+  static String get apiKey {
+    if (customBookApiKey != null && customBookApiKey!.isNotEmpty) {
+      return customBookApiKey!;
+    }
+    return envBookApiKey;
+  }
+
   // Can be overridden at build time via --dart-define=BACKEND_URL=http://...
   static const String _envBaseUrl = String.fromEnvironment('BACKEND_URL');
 
