@@ -10,108 +10,90 @@ class BookRepository {
 
   static final List<Book> _allCachedBooks = [];
 
-  /// Fetches all books directly from the frontend GET API (Gutendex / Project Gutenberg)
-  /// without calling the backend.
+  /// Fetches all books from your FastAPI backend (/api/v1/books),
+  /// with automatic fallback to curated classics if offline or slow.
   Future<List<Book>> fetchBooks({String query = '', String? category}) async {
-    final cleanQuery = query.trim().toLowerCase();
-    final cleanCategory = category?.trim().toLowerCase();
+    final cleanQuery = query.trim();
+    final cleanCategory = category?.trim();
 
-    // 1. Search or category filter queries
-    if (cleanQuery.isNotEmpty || (cleanCategory != null && cleanCategory.isNotEmpty)) {
-      try {
-        final uri = Uri.parse(gutendexBaseUrl).replace(
-          queryParameters: {
-            'languages': 'en',
-            if (cleanQuery.isNotEmpty) 'search': cleanQuery,
-            if (cleanCategory != null && cleanCategory.isNotEmpty) 'topic': cleanCategory,
-          },
-        );
-
-        final resp = await http.get(uri).timeout(const Duration(seconds: 12));
-        if (resp.statusCode == 200) {
-          final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-          final results = data['results'] as List? ?? [];
-          final books = results
-              .map((item) => Book.fromJson(Map<String, dynamic>.from(item as Map)))
-              .toList();
-
-          if (books.isNotEmpty) {
-            for (final b in books) {
-              if (!_allCachedBooks.any((c) => c.id == b.id)) {
-                _allCachedBooks.add(b);
-              }
-            }
-            return books;
-          }
-        }
-      } catch (_) {
-        // Query request timed out or failed, fall back to local filtering
-      }
-
-      // Filter in-memory cached books
-      if (_allCachedBooks.isNotEmpty) {
-        final filtered = _allCachedBooks.where((b) {
-          final matchesQuery = cleanQuery.isEmpty ||
-              b.title.toLowerCase().contains(cleanQuery) ||
-              b.authorName.toLowerCase().contains(cleanQuery);
-          final matchesCat = cleanCategory == null ||
-              cleanCategory.isEmpty ||
-              (b.category != null && b.category!.toLowerCase().contains(cleanCategory));
-          return matchesQuery && matchesCat;
-        }).toList();
-        if (filtered.isNotEmpty) return filtered;
-      }
-    }
-
-    // 2. Fetch full catalog of books from Gutendex GET API (multiple pages concurrently)
-    final List<Book> fetchedBooks = [];
-    final Set<int> seenIds = {};
-
+    // 1. Fetch from FastAPI Backend
     try {
-      final pageUrls = [
-        Uri.parse('$gutendexBaseUrl?languages=en&page=1'),
-        Uri.parse('$gutendexBaseUrl?languages=en&page=2'),
-        Uri.parse('$gutendexBaseUrl?languages=en&page=3'),
-      ];
+      final queryParams = <String, String>{};
+      if (cleanQuery.isNotEmpty) queryParams['query'] = cleanQuery;
+      if (cleanCategory != null && cleanCategory.isNotEmpty) {
+        queryParams['category'] = cleanCategory;
+      }
 
-      final responses = await Future.wait(
-        pageUrls.map(
-          (u) => http
-              .get(u)
-              .timeout(const Duration(seconds: 12))
-              .catchError((_) => http.Response('{}', 500)),
-        ),
+      final uri = Uri.parse('${ApiConstants.apiV1}/books').replace(
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
-      for (final resp in responses) {
-        if (resp.statusCode == 200) {
-          final data = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-          final results = data['results'] as List? ?? [];
-          for (final item in results) {
-            final b = Book.fromJson(Map<String, dynamic>.from(item as Map));
-            if (!seenIds.contains(b.id)) {
-              seenIds.add(b.id);
-              fetchedBooks.add(b);
+      final resp = await http
+          .get(uri, headers: AuthService().authHeaders)
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode == 200) {
+        final List<dynamic> listData =
+            jsonDecode(utf8.decode(resp.bodyBytes)) as List<dynamic>;
+        final books = listData
+            .map((item) => Book.fromJson(Map<String, dynamic>.from(item as Map)))
+            .toList();
+
+        if (books.isNotEmpty) {
+          for (final b in books) {
+            final idx = _allCachedBooks.indexWhere((c) => c.id == b.id);
+            if (idx >= 0) {
+              _allCachedBooks[idx] = b;
+            } else {
+              _allCachedBooks.add(b);
             }
           }
+          return books;
         }
       }
     } catch (_) {
-      // API temporarily slow, fall back to cached or curated catalog
+      // Backend temporarily waking up or unreachable, smoothly continue to fallback
     }
 
-    if (fetchedBooks.isNotEmpty) {
-      _allCachedBooks.clear();
-      _allCachedBooks.addAll(fetchedBooks);
-      return fetchedBooks;
-    }
-
-    // 3. Fallback: cached catalog or curated classics if offline
+    // 2. Filter in-memory cached books if available
     if (_allCachedBooks.isNotEmpty) {
-      return _allCachedBooks;
+      final qLower = cleanQuery.toLowerCase();
+      final cLower = cleanCategory?.toLowerCase();
+      final filtered = _allCachedBooks.where((b) {
+        final matchesQuery = qLower.isEmpty ||
+            b.title.toLowerCase().contains(qLower) ||
+            b.authorName.toLowerCase().contains(qLower);
+        final matchesCat = cLower == null ||
+            cLower.isEmpty ||
+            (b.category != null && b.category!.toLowerCase().contains(cLower));
+        return matchesQuery && matchesCat;
+      }).toList();
+      if (filtered.isNotEmpty) return filtered;
     }
 
-    return _getCuratedFallbackBooks();
+    // 3. Fallback: curated classics
+    final curated = _getCuratedFallbackBooks();
+    for (final b in curated) {
+      if (!_allCachedBooks.any((c) => c.id == b.id)) {
+        _allCachedBooks.add(b);
+      }
+    }
+
+    if (cleanQuery.isNotEmpty || (cleanCategory != null && cleanCategory.isNotEmpty)) {
+      final qLower = cleanQuery.toLowerCase();
+      final cLower = cleanCategory?.toLowerCase();
+      return curated.where((b) {
+        final matchesQuery = qLower.isEmpty ||
+            b.title.toLowerCase().contains(qLower) ||
+            b.authorName.toLowerCase().contains(qLower);
+        final matchesCat = cLower == null ||
+            cLower.isEmpty ||
+            (b.category != null && b.category!.toLowerCase().contains(cLower));
+        return matchesQuery && matchesCat;
+      }).toList();
+    }
+
+    return curated;
   }
 
   static List<Book> _getCuratedFallbackBooks() {
